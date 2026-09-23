@@ -1,0 +1,52 @@
+# ==============================
+# IMS – gitignore (root)
+# ==============================
+
+# Node / Next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# Env (KHÔNG commit secret)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Supabase
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+*.signing_keys.json
+
+# Flutter / Dart
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins*
+mobile/.packages
+mobile/*.iml
+mobile/ios/Pods/
+mobile/ios/.symlinks/
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/android/app/.settings/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets
+*.pem
+*.key
+firebase-service-account.json
+google-services.json
+GoogleService-Info.plist
+
+# Logs
+*.log
+npm-debug.log*
