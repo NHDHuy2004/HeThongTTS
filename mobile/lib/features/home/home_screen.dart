@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../checkin/checkin_screen.dart';
 import '../reports/reports_screen.dart';
+import '../requests/requests_screen.dart';
+import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 
 /// Shell chính theo vai trò (intern / mentor / admin / hr).
@@ -20,26 +22,38 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final isIntern = widget.role == 'intern';
-    final isStaff = widget.role == 'admin' || widget.role == 'hr' || widget.role == 'mentor';
+    final isStaff = widget.role == 'admin' ||
+        widget.role == 'hr' ||
+        widget.role == 'mentor';
 
-    final pages = <Widget>[];
+    final pages = <Widget>[DashboardScreen(role: widget.role)];
+    final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Trang chủ'),
+    ];
 
     if (isIntern) {
-      pages.add(const CheckinScreen());
-      pages.add(const ReportsScreen());
+      pages
+        ..add(const CheckinScreen())
+        ..add(const ReportsScreen())
+        ..add(const RequestsScreen());
+      items
+        ..add(const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Chấm công'))
+        ..add(const BottomNavigationBarItem(icon: Icon(Icons.description), label: 'Báo cáo'))
+        ..add(const BottomNavigationBarItem(icon: Icon(Icons.request_page), label: 'Đơn từ'));
     } else if (isStaff) {
-      pages.add(const ReportsScreen(approveMode: true));
+      pages
+        ..add(const ReportsScreen(approveMode: true))
+        ..add(const RequestsScreen(approveMode: true));
+      items
+        ..add(const BottomNavigationBarItem(
+            icon: Icon(Icons.fact_check), label: 'Duyệt báo cáo'))
+        ..add(const BottomNavigationBarItem(
+            icon: Icon(Icons.request_page), label: 'Duyệt đơn'));
     }
 
     pages.add(ProfileScreen(role: widget.role));
-
-    final items = <BottomNavigationBarItem>[];
-    if (isIntern) items.add(const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Chấm công'));
-    if (isStaff) items.add(const BottomNavigationBarItem(icon: Icon(Icons.fact_check), label: 'Duyệt báo cáo'));
-    if (isIntern) items.add(const BottomNavigationBarItem(icon: Icon(Icons.description), label: 'Báo cáo'));
     items.add(const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Hồ sơ'));
 
-    // Đảm bảo index không vượt quá số tab.
     final safeIndex = _index.clamp(0, pages.length - 1);
 
     return Scaffold(

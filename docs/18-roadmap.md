@@ -42,15 +42,20 @@
 
 ### Tuần 6
 - [x] Flutter skeleton (main.dart, core/ supabase, auth/login, home shell)
-- [~] Dashboard (Intern/Mentor), Profile — skeleton, chưa compile (máy chưa cài Flutter)
+- [~] Dashboard (Intern/Mentor), Profile — skeleton đã verify: `flutter analyze` sạch, `flutter test` pass, `flutter build web` OK
 
 ### Tuần 7
-- [~] GPS check-in/out (+ EF check-in), Attendance history — skeleton
-- [~] Tasks, Daily/Weekly report — skeleton (daily_report)
+- [x] GPS check-in/out (+ EF check-in), Attendance history — skeleton (dùng `geolocator`, gọi EF `check-in`)
+- [x] Daily/Weekly report — skeleton đã verify (gửi/duyệt `daily_reports`)
 
 ### Tuần 8
-- [ ] Requests (leave/wfh/late), Notifications (FCM) — **chưa có UI mobile**
-- [ ] Mentor quick actions; polish UI/UX; build thử — **chưa**
+- [x] Requests (leave/wfh/late) — UI mobile: tạo đơn, hủy (intern), duyệt (staff)
+- [x] Notifications — UI mobile + **FCM push tích hợp** (firebase_messaging + flutter_local_notifications,
+      token upsert `notification_devices`; tap push mở màn thông báo — chờ cấu hình Firebase qua `--dart-define`)
+- [x] Mentor quick actions (dashboard: duyệt báo cáo/đơn kèm badge số chờ)
+- [x] Polish UI: theme M3 nhất quán, card bo tròn, empty/error state dùng chung, format ngày/giờ (`intl`),
+      fix `checkin_screen` query sai cột (`check_in_at`/`work_date`)
+- [ ] Build APK thử — **cần Android SDK + Developer Mode (symlink)**
 
 ### Tuần 9
 - [x] Viết 6 Edge Functions (check-in, send-welcome-email, send-notification, generate-certificate, calculate-evaluation, export-attendance)

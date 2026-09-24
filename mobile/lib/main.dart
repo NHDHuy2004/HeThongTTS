@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import 'core/fcm.dart';
 import 'core/supabase.dart';
 import 'features/auth/login_screen.dart';
 import 'features/home/home_screen.dart';
@@ -7,6 +10,7 @@ import 'features/home/home_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseService.initialize();
+  unawaited(FcmService.init());
   runApp(const HeThongTtsApp());
 }
 
@@ -18,13 +22,48 @@ class HeThongTtsApp extends StatelessWidget {
     return MaterialApp(
       title: 'Hệ thống Thực tập',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-      ),
+      navigatorKey: FcmService.navigatorKey,
+      theme: theme,
       home: const AuthGate(),
     );
   }
+}
+
+const _seed = Color(0xFF3F51B5);
+
+ThemeData get theme {
+  final scheme = ColorScheme.fromSeed(seedColor: _seed);
+  return ThemeData(
+    colorScheme: scheme,
+    useMaterial3: true,
+    scaffoldBackgroundColor: const Color(0xFFF4F5FA),
+    appBarTheme: AppBarTheme(
+      backgroundColor: scheme.surface,
+      elevation: 0,
+      scrolledUnderElevation: 0.5,
+    ),
+    cardTheme: const CardThemeData(
+      elevation: 0,
+      margin: EdgeInsets.symmetric(vertical: 6),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.all(Radius.circular(14)),
+        side: BorderSide(color: Color(0xFFE4E6EF)),
+      ),
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(12)),
+      ),
+      contentPadding:
+          EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    ),
+    snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+    ),
+  );
 }
 
 class AuthGate extends StatelessWidget {

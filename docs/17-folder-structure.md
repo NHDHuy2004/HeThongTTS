@@ -58,8 +58,8 @@ mobile/
 └── (android/, ios/ — sinh bằng `flutter create .` sau khi cài SDK)
 ```
 
-> Trạng thái: hand-written skeleton, chưa compile trên máy này (chưa cài Flutter SDK).
-> Chạy `flutter create .` để sinh các file nền tảng trước khi build.
+> Trạng thái: **đã verify** — `flutter analyze` không lỗi, `flutter test` pass, `flutter build web` OK.
+> SDK ở `E:\flutter` (đã thêm PATH). Build native (Android/iOS) cần Android SDK + Developer Mode (symlink).
 
 ## 17.3. Supabase
 

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../core/fcm.dart';
 import '../../core/supabase.dart';
 import '../home/home_screen.dart';
 
@@ -33,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
         email: _email.text.trim(),
         password: _password.text,
       );
+      unawaited(FcmService.registerDevice());
       if (!mounted) return;
       String? role;
       try {

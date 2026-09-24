@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../core/supabase.dart';
+import '../../shared/empty_view.dart';
+import '../../shared/error_view.dart';
+import '../../shared/format.dart';
+import '../../shared/status_pill.dart';
 
 /// Intern gửi báo cáo ngày; staff (mentor/hr/admin) duyệt báo cáo.
 class ReportsScreen extends StatefulWidget {
@@ -19,6 +23,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String? _userId;
   bool _busy = false;
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -45,7 +50,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final supabase = SupabaseService.instance;
       var query = supabase.from('daily_reports').select('*');
@@ -57,7 +65,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
       if (mounted) {
         setState(() => _reports = List<Map<String, dynamic>>.of(rows));
       }
-    } catch (_) {
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -117,78 +126,89 @@ class _ReportsScreenState extends State<ReportsScreen> {
       appBar: AppBar(
         title: Text(widget.approveMode ? 'Duyệt báo cáo' : 'Báo cáo ngày'),
       ),
-      body: _loading
+body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                if (!widget.approveMode) ...[
-                  TextField(
-                    controller: _content,
-                    maxLines: 3,
-                    decoration: const InputDecoration(
-                      labelText: 'Công việc đã làm hôm nay',
-                      border: OutlineInputBorder(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: _busy ? null : _submit,
-                    child: Text(_busy ? 'Đang gửi...' : 'Gửi báo cáo'),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                ..._reports.map(
-                  (r) => Card(
-                    child: ListTile(
-                      isThreeLine: true,
-                      title: Text('${r['report_date']}'),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text((r['tasks_done'] ?? r['results'] ?? 'Không có nội dung') as String),
-                          const SizedBox(height: 4),
-                          _StatusPill(status: r['status'] as String),
-                          if (r['feedback'] != null)
-                            Text('Phản hồi: ${r['feedback']}',
-                                style: const TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                      trailing: widget.approveMode &&
-                              (r['status'] == 'submitted')
-                          ? PopupMenuButton<String>(
-                              onSelected: (v) => _review(r['id'] as String, v),
-                              itemBuilder: (_) => const [
-                                PopupMenuItem(value: 'approved', child: Text('Duyệt')),
-                                PopupMenuItem(value: 'rejected', child: Text('Từ chối')),
-                              ],
-                            )
-                          : null,
-                    ),
+          : _error != null
+              ? ErrorView(message: _error!, onRetry: _load)
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (!widget.approveMode) ...[
+                        TextField(
+                          controller: _content,
+                          maxLines: 3,
+                          decoration: const InputDecoration(
+                            labelText: 'Công việc đã làm hôm nay',
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton(
+                          onPressed: _busy ? null : _submit,
+                          child: Text(_busy ? 'Đang gửi...' : 'Gửi báo cáo'),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (_reports.isEmpty && widget.approveMode)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 80),
+                          child: EmptyView(
+                            icon: Icons.fact_check,
+                            message: 'Chưa có báo cáo chờ duyệt.',
+                          ),
+                        ),
+                      ..._reports.map((r) => _card(r)),
+                    ],
                   ),
                 ),
-              ],
-            ),
     );
   }
-}
 
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({required this.status});
-
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (status) {
-      'approved' => Colors.green,
-      'rejected' => Colors.red,
-      'submitted' => Colors.orange,
-      _ => Colors.blueGrey,
-    };
-    return Text(
-      status.toUpperCase(),
-      style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
+  Widget _card(Map<String, dynamic> r) {
+    final canReview =
+        widget.approveMode && (r['status'] == 'submitted');
+    return Card(
+      child: ListTile(
+        isThreeLine: true,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(fmtDbDate(r['report_date'] as String?)),
+            ),
+            StatusPill(status: r['status'] as String),
+          ],
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              (r['tasks_done'] ?? r['results'] ?? 'Không có nội dung')
+                  as String,
+            ),
+            const SizedBox(height: 4),
+            if (r['feedback'] != null)
+              Text('Phản hồi: ${r['feedback']}',
+                  style: const TextStyle(fontSize: 12)),
+            if (canReview) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  FilledButton(
+                    onPressed: () => _review(r['id'] as String, 'approved'),
+                    child: const Text('Duyệt'),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () => _review(r['id'] as String, 'rejected'),
+                    child: const Text('Từ chối'),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
