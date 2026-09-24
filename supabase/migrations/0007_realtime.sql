@@ -12,26 +12,88 @@ begin
   end if;
 end $$;
 
-alter publication supabase_realtime
-  add table public.tasks;
-alter publication supabase_realtime
-  add table public.task_comments;
-alter publication supabase_realtime
-  add table public.daily_reports;
-alter publication supabase_realtime
-  add table public.weekly_reports;
-alter publication supabase_realtime
-  add table public.leave_requests;
-alter publication supabase_realtime
-  add table public.work_from_home_requests;
-alter publication supabase_realtime
-  add table public.late_requests;
-alter publication supabase_realtime
-  add table public.notifications;
-alter publication supabase_realtime
-  add table public.evaluations;
-alter publication supabase_realtime
-  add table public.attendance;
+-- --------------------------------------------------------------------------
+-- Đăng ký từng bảng vào publication (idempotent — không lỗi nếu đã có sẵn)
+-- --------------------------------------------------------------------------
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'tasks') then
+    alter publication supabase_realtime add table public.tasks;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'task_comments') then
+    alter publication supabase_realtime add table public.task_comments;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'daily_reports') then
+    alter publication supabase_realtime add table public.daily_reports;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'weekly_reports') then
+    alter publication supabase_realtime add table public.weekly_reports;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'leave_requests') then
+    alter publication supabase_realtime add table public.leave_requests;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'work_from_home_requests') then
+    alter publication supabase_realtime add table public.work_from_home_requests;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'late_requests') then
+    alter publication supabase_realtime add table public.late_requests;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'notifications') then
+    alter publication supabase_realtime add table public.notifications;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'evaluations') then
+    alter publication supabase_realtime add table public.evaluations;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (select 1 from pg_publication_tables
+                 where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'attendance') then
+    alter publication supabase_realtime add table public.attendance;
+  end if;
+end $$;
 
 -- --------------------------------------------------------------------------
 -- Hàm tiện ích: bảng, các bảng chưa có trong publication

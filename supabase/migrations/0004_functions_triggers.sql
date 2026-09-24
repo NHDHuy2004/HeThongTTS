@@ -421,9 +421,11 @@ begin
     'task_completion_rate',(select round(100.0 * count(*) filter (where status = 'done') / nullif(count(*), 0), 1)
                             from public.tasks),
     'avg_evaluation',      (select round(avg(final_score)::numeric, 1) from public.evaluations where final_score is not null),
-    'attendance_trend',    (select coalesce(jsonb_agg(jsonb_build_object('date', work_date, 'present',
-                            count(*))) filter (where status in ('present','late')), '[]')
-                            from public.attendance group by work_date order by work_date desc limit 30),
+    'attendance_trend',    (select coalesce(jsonb_agg(jsonb_build_object('date', date, 'present', present) order by date desc), '[]'::jsonb)
+                            from (select work_date as date, count(*) as present
+                                  from public.attendance
+                                  where status in ('present','late')
+                                  group by work_date) trend),
     'tasks_by_status',     (select coalesce(jsonb_object_agg(status, cnt), '{}'::jsonb)
                             from (select status, count(*) as cnt from public.tasks group by status) t),
     'batches_by_status',   (select coalesce(jsonb_object_agg(status, cnt), '{}'::jsonb)

@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { getAuthErrorMessage, getErrorMessage } from "@/lib/errors";
+import { getAuthErrorMessage } from "@/lib/errors";
 
 const credentialsSchema = z.object({
   email: z.string().email("Email không hợp lệ"),

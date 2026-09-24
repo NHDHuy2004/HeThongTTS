@@ -1,0 +1,25 @@
+name: he_thong_tts_mobile
+description: Ứng dụng mobile cho hệ thống quản lý thực tập (ĐH Đà Lạt).
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ">=3.4.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  supabase_flutter: ^2.8.0
+  geolocator: ^13.0.0
+  intl: ^0.20.0
+  flutter_dotenv: ^5.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env

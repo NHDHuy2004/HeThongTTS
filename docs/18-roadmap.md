@@ -14,50 +14,51 @@
 
 ### Tuần 1
 - [x] Cấu trúc repo, rename mobile, init supabase config
-- [ ] Viết migration enums + tables + indexes
-- [ ] Viết functions/triggers (updated_at, profile trigger, audit)
-- [ ] Viết RLS policies đầy đủ
+- [x] Viết migration enums + tables + indexes (`0001`–`0003`, `0009`)
+- [x] Viết functions/triggers (updated_at, profile trigger, audit) (`0004`)
+- [x] Viết RLS policies đầy đủ (`0005`)
 
 ### Tuần 2
-- [ ] Storage buckets + policies
-- [ ] Realtime publication
-- [ ] Seed data (roles, admin, departments, batches, criteria, checklist, templates, location)
-- [ ] Script kiểm thử RLS theo 4 role
-- [ ] `supabase db reset` + xác nhận (cần Docker) OR kiểm tra production
+- [x] Storage buckets + policies (`0006`)
+- [x] Realtime publication (`0007`)
+- [x] Seed data (roles, admin, departments, batches, criteria, checklist, templates, location) (`seed.sql`)
+- [x] Script kiểm thử RLS theo 4 role (`scripts/test_rls.sql`)
+- [ ] `supabase db reset` + xác nhận (cần Docker / CLI) — **chưa chạy trên máy này**
 
 ### Tuần 3
-- [ ] Init Next.js (TS, App Router, Tailwind, shadcn)
-- [ ] Supabase SSR, middleware role-guard, auth pages
-- [ ] Dashboard KPI + charts + alerts
+- [x] Init Next.js (TS, App Router, Tailwind, shadcn)
+- [x] Supabase SSR, middleware role-guard, auth pages (login, quên/reset mật khẩu)
+- [x] Dashboard KPI + charts + alerts
 
 ### Tuần 4
-- [ ] Interns CRUD + import + detail tabs
-- [ ] Mentors, Departments, Internship batches
-- [ ] Onboarding + welcome email (Server Action + Resend)
+- [x] Interns CRUD + **import CSV** + detail tabs
+- [x] Mentors, Departments, Internship batches
+- [x] Onboarding + welcome email (EF `send-welcome-email` đã viết, chưa deploy)
 
 ### Tuần 5
-- [ ] Tasks (kanban + list + template + comment + attachment)
-- [ ] Attendance management + export CSV
-- [ ] Requests, Reports approval, Evaluations, Certificates UI
+- [x] Tasks (kanban + list + template + comment + attachment)
+- [x] Attendance management + export CSV (`/api/exports/attendance` + EF `export-attendance`)
+- [x] Requests, Reports approval, Evaluations, Certificates UI
 
 ### Tuần 6
-- [ ] Flutter skeleton, features/ core, auth, Riverpod setup
-- [ ] Dashboard (Intern/Mentor), Profile
+- [x] Flutter skeleton (main.dart, core/ supabase, auth/login, home shell)
+- [~] Dashboard (Intern/Mentor), Profile — skeleton, chưa compile (máy chưa cài Flutter)
 
 ### Tuần 7
-- [ ] GPS check-in/out (+ EF check-in), Attendance history
-- [ ] Tasks, Daily/Weekly report
+- [~] GPS check-in/out (+ EF check-in), Attendance history — skeleton
+- [~] Tasks, Daily/Weekly report — skeleton (daily_report)
 
 ### Tuần 8
-- [ ] Requests (leave/wfh/late), Notifications (FCM)
-- [ ] Mentor quick actions; polish UI/UX; build thử
+- [ ] Requests (leave/wfh/late), Notifications (FCM) — **chưa có UI mobile**
+- [ ] Mentor quick actions; polish UI/UX; build thử — **chưa**
 
 ### Tuần 9
-- [ ] Deploy EF: check-in, send-email, send-notification, generate-certificate, calculate-evaluation, export-attendance
-- [ ] Realtime wiring cho Web + Mobile
+- [x] Viết 6 Edge Functions (check-in, send-welcome-email, send-notification, generate-certificate, calculate-evaluation, export-attendance)
+- [ ] Deploy EF lên Supabase (cần `supabase` CLI / Deno) — **chưa deploy**
+- [~] Realtime wiring cho Web + Mobile — chưa hoàn thiện
 
 ### Tuần 10
-- [ ] E2E Playwright, unit/integration tests, security scan, fix
+- [ ] E2E Playwright, unit/integration tests, security scan, fix — **chưa**
 
 ### Tuần 11+
 - [ ] Vercel prod domain, Supabase prod, Codemagic workflows, backup, monitoring, UAT, docs & training

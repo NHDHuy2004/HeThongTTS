@@ -1,3 +1,5 @@
+import type { NextRequest } from "next/server";
+
 import { updateSession } from "@/lib/supabase/guard";
 
 export async function proxy(request: NextRequest) {

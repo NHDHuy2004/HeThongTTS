@@ -54,7 +54,9 @@ export async function updateSession(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname;
     const isAuthPage =
-      pathname.startsWith("/login") || pathname.startsWith("/forgot-password");
+      pathname.startsWith("/login") ||
+      pathname.startsWith("/forgot-password") ||
+      pathname.startsWith("/reset-password");
 
     // Chưa đăng nhập:
     //   - ra trang auth → cho qua (rewrite tới đích, tránh loop)

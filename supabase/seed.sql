@@ -7,7 +7,9 @@
 --   intern@ims.local/ Intern@123    → Intern
 -- ==========================================================================
 
-set search_path = public;
+create extension if not exists pgcrypto;
+
+set search_path = public, extensions;
 
 -- --------------------------------------------------------------------------
 -- 1. Roles (id cố định để tham chiếu trong demo)
