@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/current_user.dart';
+import '../../core/realtime.dart';
 import '../../core/supabase.dart';
 import '../../shared/error_view.dart';
 import '../../shared/format.dart';
@@ -18,7 +21,8 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen>
+    with WidgetsBindingObserver {
   bool _loading = true;
   String? _error;
 
@@ -32,10 +36,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _fullName = '';
 
+  StreamSubscription<Map<String, dynamic>>? _notifSub;
+  StreamSubscription<void>? _reviewSub;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    unawaited(RealtimeService.instance.start());
+    _subscribeRealtime();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notifSub?.cancel();
+    _reviewSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
+  }
+
+  void _subscribeRealtime() {
+    final rt = RealtimeService.instance;
+    _notifSub = rt.notifications.listen((_) => _load());
+    _reviewSub = rt.reviewChanges.listen((_) => _load());
   }
 
   Future<void> _load() async {

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/current_user.dart';
+import '../../core/fcm.dart';
 import '../../core/supabase.dart';
 import '../../shared/empty_view.dart';
 import '../../shared/error_view.dart';
@@ -106,13 +109,25 @@ class _RequestsScreenState extends State<RequestsScreen> {
     await _load();
   }
 
-  Future<void> _review(String kind, String id, String status) async {
+  Future<void> _review(_Req r, String status) async {
     final uid = SupabaseService.instance.auth.currentUser?.id;
-    await SupabaseService.instance.from(kind).update({
+    final id = r.row['id'] as String;
+    await SupabaseService.instance.from(r.kind).update({
       'status': status,
       'reviewed_by': uid,
       'reviewed_at': DateTime.now().toIso8601String(),
     }).eq('id', id);
+    unawaited(FcmService.notifyReview(
+      internId: r.row['intern_id'] as String,
+      type: status == 'approved' ? 'request_approved' : 'request_rejected',
+      title: _titleOf(r),
+      body: '${_titleOf(r)} ${status == 'approved' ? 'đã được duyệt.' : 'đã bị từ chối.'}',
+      data: {
+        'table': r.kind,
+        'id': id,
+        'notification_id': id,
+      },
+    ));
     await _load();
   }
 
@@ -148,14 +163,18 @@ class _RequestsScreenState extends State<RequestsScreen> {
     );
   }
 
-  Widget _card(_Req r) {
-    final row = r.row;
-    final type = (row['request_type'] ?? r.kind).toString();
-    final title = {
+  String _titleOf(_Req r) {
+    final type = (r.row['request_type'] ?? r.kind).toString();
+    return {
       'leave_requests': 'Nghỉ phép',
       'work_from_home_requests': 'Làm từ xa',
       'late_requests': type == 'early_leave' ? 'Về sớm' : 'Đi muộn',
     }[r.kind]!;
+  }
+
+  Widget _card(_Req r) {
+    final row = r.row;
+    final title = _titleOf(r);
 
     final dateInfo = switch (r.kind) {
       'leave_requests' =>
@@ -202,12 +221,12 @@ class _RequestsScreenState extends State<RequestsScreen> {
               Row(
                 children: [
                   FilledButton(
-                    onPressed: () => _review(r.kind, row['id'] as String, 'approved'),
+                    onPressed: () => _review(r, 'approved'),
                     child: const Text('Duyệt'),
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton(
-                    onPressed: () => _review(r.kind, row['id'] as String, 'rejected'),
+                    onPressed: () => _review(r, 'rejected'),
                     child: const Text('Từ chối'),
                   ),
                 ],

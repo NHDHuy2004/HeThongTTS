@@ -60,7 +60,10 @@
 ### Tuần 9
 - [x] Viết 6 Edge Functions (check-in, send-welcome-email, send-notification, generate-certificate, calculate-evaluation, export-attendance)
 - [ ] Deploy EF lên Supabase (cần `supabase` CLI / Deno) — **chưa deploy**
-- [~] Realtime wiring cho Web + Mobile — chưa hoàn thiện
+- [~] Realtime: **mobile xong** (`core/realtime.dart` — notifications + làm mới dashboard/đơn/báo cáo;
+      `0007` đã publication sẵn). **Web còn thiếu** (dashboard là server component).
+- [x] Migration `0010`: trigger tự tạo thông báo khi duyệt/từ chối đơn & báo cáo (request_approved/rejected, report_approved/rejected)
+- [x] EF `send-notification` hỗ trợ `push_only: true` (mobile gửi FCM sau khi duyệt, không trùng bản tin DB)
 
 ### Tuần 10
 - [ ] E2E Playwright, unit/integration tests, security scan, fix — **chưa**

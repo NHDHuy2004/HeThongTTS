@@ -32,6 +32,7 @@ Deno.serve(async (req: Request) => {
       title?: string;
       body?: string;
       data?: Record<string, string>;
+      push_only?: boolean;
     } | null;
 
     if (!body?.user_id) return errorJson("VALIDATION_ERROR", "Thiếu user_id");
@@ -61,18 +62,27 @@ Deno.serve(async (req: Request) => {
       return errorJson("PERMISSION_DENIED", "Bạn không có quyền gửi thông báo này", 403);
     }
 
-    // Một số trường hợp nghiệp vụ gửi cho người khác → type dành cho người nhận.
-    const { data: notification, error: insErr } = await supabase
-      .from("notifications")
-      .insert({
-        user_id: body.user_id,
-        type: body.type as never,
-        title: body.title,
-        body: body.body,
-        data: body.data,
-      })
-      .select()
-      .single();
+    // push_only=true: dòng notification đã được trigger DB tạo sẵn (migration 0010),
+    // đây chỉ gửi FCM để tránh bản tin trùng.
+    let notification;
+    let insErr;
+    if (body.push_only) {
+      notification = { id: body.data?.notification_id ?? null };
+    } else {
+      const inserted = await supabase
+        .from("notifications")
+        .insert({
+          user_id: body.user_id,
+          type: body.type as never,
+          title: body.title,
+          body: body.body,
+          data: body.data,
+        })
+        .select()
+        .single();
+      notification = inserted.data;
+      insErr = inserted.error;
+    }
     if (insErr) throw new AppError("DB_ERROR", insErr.message, 500, insErr);
 
     // Push FCM tới mọi thiết bị của người nhận

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/fcm.dart';
+import '../../core/realtime.dart';
 import '../../core/supabase.dart';
 import '../auth/login_screen.dart';
 
@@ -56,6 +57,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onTap: () async {
               final navigator = Navigator.of(context);
               await FcmService.unregisterDevice();
+              await RealtimeService.instance.stop();
               await SupabaseService.instance.auth.signOut();
               if (!mounted) return;
               navigator.pushAndRemoveUntil(

@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../core/realtime.dart';
 import '../../core/supabase.dart';
 import '../../shared/empty_view.dart';
 import '../../shared/error_view.dart';
@@ -14,15 +17,37 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends State<NotificationsScreen>
+    with WidgetsBindingObserver {
   List<Map<String, dynamic>> _items = [];
   bool _loading = true;
   String? _error;
+  StreamSubscription<Map<String, dynamic>>? _notifSub;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+    _notifSub = RealtimeService.instance.notifications.listen((rec) {
+      if (!mounted) return;
+      setState(() {
+        final exists = _items.any((n) => n['id'] == rec['id']);
+        if (!exists) _items.insert(0, rec);
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _notifSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _load();
   }
 
   Future<void> _load() async {

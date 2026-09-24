@@ -26,7 +26,8 @@ lib/
   core/
     supabase.dart            # Khởi tạo Supabase từ mobile/.env
     current_user.dart        # helpers: myInternId, myInternshipIds, myRole
-    fcm.dart                 # FCM: nhận push, upsert token, mở màn notifications khi tap
+    fcm.dart                 # FCM: nhận push, upsert token, mở màn notifications khi tap, push_only khi duyệt
+    realtime.dart            # Realtime: kênh notifications + làm mới dashboard/đơn/báo cáo
   shared/
     status_pill.dart         # status/priority màu + nhãn tiếng Việt
     format.dart              # fmtDbDate / fmtTime

@@ -106,6 +106,38 @@ class FcmService {
     }
   }
 
+  /// Gửi FCM "push_only" khi mentor/hr/admin duyệt đơn/báo cáo.
+  /// Dòng notification DB đã được trigger (migration 0010) tạo sẵn —
+  /// hàm này chỉ push FCM để không tạo bản tin trùng.
+  static Future<void> notifyReview({
+    required String internId,
+    required String type,
+    required String title,
+    required String body,
+    required Map<String, dynamic> data,
+  }) async {
+    try {
+      final supabase = SupabaseService.instance;
+      final intern = await supabase
+          .from('interns')
+          .select('user_id')
+          .eq('id', internId)
+          .maybeSingle();
+      final userId = intern?['user_id'] as String?;
+      if (userId == null) return;
+      await supabase.functions.invoke('send-notification', body: {
+        'user_id': userId,
+        'type': type,
+        'title': title,
+        'body': body,
+        'data': data,
+        'push_only': true,
+      });
+    } catch (e) {
+      debugPrint('[FCM] notifyReview lỗi: $e');
+    }
+  }
+
   static Future<void> _upsertToken(String token) async {
     if (kIsWeb) return;
     final user = SupabaseService.instance.auth.currentUser;
