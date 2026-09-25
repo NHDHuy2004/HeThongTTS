@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../checkin/checkin_screen.dart';
 import '../reports/reports_screen.dart';
 import '../requests/requests_screen.dart';
+import '../tasks/tasks_screen.dart';
 import 'dashboard_screen.dart';
 import 'profile_screen.dart';
 
@@ -33,18 +34,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (isIntern) {
       pages
+        ..add(const TasksScreen(role: 'intern'))
         ..add(const CheckinScreen())
         ..add(const ReportsScreen())
         ..add(const RequestsScreen());
       items
+        ..add(const BottomNavigationBarItem(
+            icon: Icon(Icons.task_alt), label: 'Công việc'))
         ..add(const BottomNavigationBarItem(icon: Icon(Icons.place), label: 'Chấm công'))
         ..add(const BottomNavigationBarItem(icon: Icon(Icons.description), label: 'Báo cáo'))
         ..add(const BottomNavigationBarItem(icon: Icon(Icons.request_page), label: 'Đơn từ'));
     } else if (isStaff) {
       pages
+        ..add(TasksScreen(role: widget.role))
         ..add(const ReportsScreen(approveMode: true))
         ..add(const RequestsScreen(approveMode: true));
       items
+        ..add(const BottomNavigationBarItem(
+            icon: Icon(Icons.task_alt), label: 'Công việc'))
         ..add(const BottomNavigationBarItem(
             icon: Icon(Icons.fact_check), label: 'Duyệt báo cáo'))
         ..add(const BottomNavigationBarItem(

@@ -25,9 +25,21 @@ export type InternStatus =
 
 export type InternshipStatus = "upcoming" | "active" | "completed" | "cancelled";
 
-export type TaskStatus = "todo" | "in_progress" | "review" | "done";
+export type TaskStatus =
+  | "not_started"
+  | "in_progress"
+  | "in_review"
+  | "changes_requested"
+  | "completed"
+  | "cancelled";
 
 export type TaskPriority = "low" | "medium" | "high" | "urgent";
+
+export type TaskAssignmentType = "individual" | "team";
+
+export type ReviewDecision = "approved" | "changes_requested" | "rejected";
+
+export type ReviewCompletion = "none" | "partial" | "complete";
 
 export type RequestType = "leave" | "wfh" | "late" | "early_leave" | "other";
 
@@ -53,6 +65,8 @@ export type DayStatus = "working_day" | "weekend" | "holiday";
 export type NotificationType =
   | "task_assigned"
   | "task_updated"
+  | "task_review_approved"
+  | "task_review_changes"
   | "report_approved"
   | "report_rejected"
   | "request_approved"
@@ -223,8 +237,17 @@ export interface TasksRow {
   template_id: string | null;
   title: string;
   description: string | null;
+  assignment_type: TaskAssignmentType;
+  project: string | null;
+  module: string | null;
+  task_type: string | null;
+  objective: string | null;
+  requirements: string | null;
+  acceptance_criteria: string | null;
+  deliverables: Json;
   priority: TaskPriority;
   status: TaskStatus;
+  start_date: string | null;
   deadline: string | null;
   estimated_hours: number | null;
   result_summary: string | null;
@@ -245,11 +268,92 @@ export interface TaskCommentsRow {
 export interface TaskAttachmentsRow {
   id: string;
   task_id: string;
-  uploaded_by: string;
+  uploaded_by: string | null;
   file_path: string;
   file_name: string;
   mime_type: string | null;
   file_size: number | null;
+  created_at: string;
+}
+
+export interface TaskAssigneesRow {
+  id: string;
+  task_id: string;
+  intern_id: string;
+  role: string | null;
+  assigned_by: string | null;
+  created_at: string;
+}
+
+export interface TaskSubtasksRow {
+  id: string;
+  task_id: string;
+  title: string;
+  description: string | null;
+  assignee_id: string | null;
+  start_date: string | null;
+  due_date: string | null;
+  priority: TaskPriority;
+  status: TaskStatus;
+  deliverable: string | null;
+  result_summary: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskSubmissionsRow {
+  id: string;
+  task_id: string;
+  subtask_id: string | null;
+  submitted_by: string;
+  work_summary: string | null;
+  implementation_details: string | null;
+  problems: string | null;
+  solutions: string | null;
+  notes: string | null;
+  submission_no: number;
+  submitted_at: string;
+}
+
+export interface TaskSubmissionFilesRow {
+  id: string;
+  submission_id: string;
+  file_path: string;
+  file_name: string;
+  mime_type: string | null;
+  file_size: number | null;
+  created_at: string;
+}
+
+export interface TaskSubmissionLinksRow {
+  id: string;
+  submission_id: string;
+  title: string | null;
+  url: string;
+  created_at: string;
+}
+
+export interface TaskReviewsRow {
+  id: string;
+  task_id: string;
+  subtask_id: string | null;
+  submission_id: string | null;
+  reviewer_id: string;
+  decision: ReviewDecision;
+  completion: ReviewCompletion;
+  completion_pct: number | null;
+  quality_score: number | null;
+  technical_score: number | null;
+  documentation_score: number | null;
+  soft_score: number | null;
+  deadline_bucket: string | null;
+  feedback: string | null;
+  strengths: string | null;
+  weaknesses: string | null;
+  improvements: string | null;
+  final_score: number | null;
+  reviewed_at: string;
   created_at: string;
 }
 
@@ -565,6 +669,51 @@ export interface Database {
           rel<"attachments_uploaded_by_fkey", "uploaded_by", "profiles">,
         ]
       >;
+      task_assignees: Ident<
+        TaskAssigneesRow,
+        [
+          rel<"task_assignees_task_id_fkey", "task_id", "tasks">,
+          rel<"task_assignees_intern_id_fkey", "intern_id", "interns">,
+          rel<"task_assignees_assigned_by_fkey", "assigned_by", "profiles">,
+        ]
+      >;
+      task_subtasks: Ident<
+        TaskSubtasksRow,
+        [
+          rel<"task_subtasks_task_id_fkey", "task_id", "tasks">,
+          rel<"task_subtasks_assignee_id_fkey", "assignee_id", "interns">,
+          rel<"task_subtasks_created_by_fkey", "created_by", "profiles">,
+        ]
+      >;
+      task_submissions: Ident<
+        TaskSubmissionsRow,
+        [
+          rel<"task_submissions_task_id_fkey", "task_id", "tasks">,
+          rel<"task_submissions_subtask_id_fkey", "subtask_id", "task_subtasks">,
+          rel<"task_submissions_submitted_by_fkey", "submitted_by", "profiles">,
+        ]
+      >;
+      task_submission_files: Ident<
+        TaskSubmissionFilesRow,
+        [
+          rel<"submission_files_submission_id_fkey", "submission_id", "task_submissions">,
+        ]
+      >;
+      task_submission_links: Ident<
+        TaskSubmissionLinksRow,
+        [
+          rel<"submission_links_submission_id_fkey", "submission_id", "task_submissions">,
+        ]
+      >;
+      task_reviews: Ident<
+        TaskReviewsRow,
+        [
+          rel<"task_reviews_task_id_fkey", "task_id", "tasks">,
+          rel<"task_reviews_subtask_id_fkey", "subtask_id", "task_subtasks">,
+          rel<"task_reviews_submission_id_fkey", "submission_id", "task_submissions">,
+          rel<"task_reviews_reviewer_id_fkey", "reviewer_id", "profiles">,
+        ]
+      >;
       attendance_locations: Ident<AttendanceLocationsRow, [rel<"locations_created_by_fkey", "created_by", "profiles">]>;
       attendance: Ident<
         AttendanceRow,
@@ -664,6 +813,22 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: string[];
       };
+      get_my_task_ids: {
+        Args: Record<PropertyKey, never>;
+        Returns: string[];
+      };
+      is_task_participant: {
+        Args: { p_task_id: string };
+        Returns: boolean;
+      };
+      is_staff_of_task: {
+        Args: { p_task_id: string };
+        Returns: boolean;
+      };
+      can_attach_task_file: {
+        Args: { p_task_id: string };
+        Returns: boolean;
+      };
       get_dashboard_stats: {
         Args: Record<PropertyKey, never>;
         Returns: Json;
@@ -695,6 +860,9 @@ export interface Database {
       internship_status: InternshipStatus;
       task_status: TaskStatus;
       task_priority: TaskPriority;
+      task_assignment_type: TaskAssignmentType;
+      review_decision: ReviewDecision;
+      review_completion: ReviewCompletion;
       request_type: RequestType;
       request_status: RequestStatus;
       report_status: ReportStatus;

@@ -28,7 +28,7 @@ begin
     'converted',           (select count(*) from public.internships where converted_to_employee and deleted_at is null),
     'attendance_rate',     (select round(100.0 * count(*) filter (where status in ('present','late')) / nullif(count(*), 0), 1)
                             from public.attendance),
-    'task_completion_rate',(select round(100.0 * count(*) filter (where status = 'done') / nullif(count(*), 0), 1)
+    'task_completion_rate',(select round(100.0 * count(*) filter (where status = 'completed') / nullif(count(*), 0), 1)
                             from public.tasks),
     'avg_evaluation',      (select round(avg(final_score)::numeric, 1) from public.evaluations where final_score is not null),
     'attendance_trend',    (select coalesce(jsonb_agg(jsonb_build_object('date', date, 'present', present) order by date desc), '[]'::jsonb)

@@ -16,3 +16,10 @@ String fmtTime(String? iso) {
   final m = d.minute.toString().padLeft(2, '0');
   return '$h:$m';
 }
+
+String fmtDateTime(String? iso) {
+  if (iso == null) return '—';
+  final d = DateTime.tryParse(iso)?.toLocal();
+  if (d == null) return iso;
+  return '${_dayFmt.format(d)} ${fmtTime(iso)}';
+}

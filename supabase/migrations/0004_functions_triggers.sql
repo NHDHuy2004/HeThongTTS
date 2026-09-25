@@ -374,7 +374,7 @@ language sql
 stable
 as $$
   select case when count(*) = 0 then 0 else
-      round(100.0 * count(*) filter (where status = 'done') / count(*), 1)
+      round(100.0 * count(*) filter (where status = 'completed') / count(*), 1)
     end
   from public.tasks
   where internship_id = p_internship_id;
@@ -418,7 +418,7 @@ begin
     'converted',           (select count(*) from public.internships where converted_to_employee and deleted_at is null),
     'attendance_rate',     (select round(100.0 * count(*) filter (where status in ('present','late')) / nullif(count(*), 0), 1)
                             from public.attendance),
-    'task_completion_rate',(select round(100.0 * count(*) filter (where status = 'done') / nullif(count(*), 0), 1)
+    'task_completion_rate',(select round(100.0 * count(*) filter (where status = 'completed') / nullif(count(*), 0), 1)
                             from public.tasks),
     'avg_evaluation',      (select round(avg(final_score)::numeric, 1) from public.evaluations where final_score is not null),
     'attendance_trend',    (select coalesce(jsonb_agg(jsonb_build_object('date', date, 'present', present) order by date desc), '[]'::jsonb)
@@ -472,7 +472,7 @@ begin
                            where ip.mentor_id = v_mentor_id and la.status = 'pending')),
     'open_tasks',     (select count(*) from public.tasks t
                         join public.internships ip on ip.id = t.internship_id
-                        where ip.mentor_id = v_mentor_id and t.status not in ('done'))
+                        where ip.mentor_id = v_mentor_id and t.status not in ('completed', 'cancelled'))
   ) into result;
 
   return result;

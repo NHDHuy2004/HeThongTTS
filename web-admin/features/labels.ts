@@ -9,10 +9,9 @@ export type BadgeVariant =
 
 export const statusLabel: Record<string, string> = {
   // task
-  todo: "Chưa làm",
   in_progress: "Đang làm",
-  review: "Chờ duyệt",
-  done: "Hoàn thành",
+  in_review: "Chờ duyệt",
+  changes_requested: "Cần chỉnh sửa",
   // task priority
   low: "Thấp",
   medium: "Trung bình",
@@ -55,7 +54,6 @@ export const statusVariant: Record<string, BadgeVariant> = {
   approved: "default",
   issued: "default",
   present: "default",
-  done: "default",
   completed: "default",
   active: "default",
   converted: "default",
@@ -65,7 +63,8 @@ export const statusVariant: Record<string, BadgeVariant> = {
   submitted: "secondary",
   upcomming: "secondary",
   upcoming: "secondary",
-  review: "secondary",
+  in_review: "secondary",
+  changes_requested: "destructive",
   pending: "secondary",
   draft: "outline",
   not_started: "outline",
@@ -122,6 +121,41 @@ export const reportTypeLabel: Record<string, string> = {
   daily: "Báo cáo ngày",
   weekly: "Báo cáo tuần",
 };
+
+export const assignmentTypeLabel: Record<string, string> = {
+  individual: "Cá nhân",
+  team: "Nhóm",
+};
+
+export const reviewDecisionLabel: Record<string, string> = {
+  approved: "Duyệt",
+  changes_requested: "Yêu cầu sửa",
+  rejected: "Từ chối",
+};
+
+export const completionLabel: Record<string, string> = {
+  complete: "Hoàn thành",
+  partial: "Hoàn thành một phần",
+  none: "Chưa hoàn thành",
+};
+
+export const deadlineBucketLabel: Record<string, string> = {
+  on_time: "Đúng hạn",
+  late: "Trễ hạn",
+};
+
+export const deliverablesList = [
+  { value: "source_code", label: "Source Code" },
+  { value: "database_script", label: "Database Script" },
+  { value: "screenshot", label: "Screenshot" },
+  { value: "documentation", label: "Documentation" },
+  { value: "demo_link", label: "Demo Link" },
+  { value: "file", label: "File" },
+] as const;
+
+export const deliverableKindLabel: Record<string, string> = Object.fromEntries(
+  deliverablesList.map((d) => [d.value, d.label]),
+);
 
 export function formatDate(value?: string | null): string {
   if (!value) return "—";

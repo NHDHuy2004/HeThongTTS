@@ -39,7 +39,7 @@ begin
     return null;
   end if;
   -- chỉ kích hoạt khi có CHUYỂN trạng thái (tránh lặp khi update cùng trạng thái)
-  if coalesce(OLD.status, '') = NEW.status then
+  if OLD.status is not distinct from NEW.status then
     return null;
   end if;
 
@@ -103,7 +103,7 @@ begin
   if NEW.status not in ('approved', 'rejected') then
     return null;
   end if;
-  if coalesce(OLD.status, '') = NEW.status then
+  if OLD.status is not distinct from NEW.status then
     return null;
   end if;
 
