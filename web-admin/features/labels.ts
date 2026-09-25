@@ -119,7 +119,19 @@ export const requestTypeLabel: Record<string, string> = {
   wfh: "Làm từ xa",
   late: "Đi muộn",
   early_leave: "Về sớm",
+  attendance_adjustment: "Điều chỉnh chấm công",
+  schedule_change: "Thay đổi lịch làm",
   other: "Khác",
+};
+
+export const requestActionLabel: Record<string, string> = {
+  submit: "Gửi đơn",
+  take: "Tiếp nhận",
+  approve: "Duyệt",
+  reject: "Từ chối",
+  request_revision: "Yêu cầu bổ sung",
+  cancel: "Hủy",
+  resubmit: "Gửi lại",
 };
 
 export const evaluationTypeLabel: Record<string, string> = {
@@ -132,6 +144,19 @@ export const evaluationTypeLabel: Record<string, string> = {
 export const reportTypeLabel: Record<string, string> = {
   daily: "Báo cáo ngày",
   weekly: "Báo cáo tuần",
+  monthly: "Báo cáo tháng",
+  final: "Báo cáo tổng kết",
+};
+
+export const reportActionLabel: Record<string, string> = {
+  create: "Tạo báo cáo",
+  update: "Chỉnh sửa",
+  submit: "Nộp báo cáo",
+  take: "Tiếp nhận",
+  approve: "Phê duyệt",
+  reject: "Từ chối",
+  request_revision: "Yêu cầu chỉnh sửa",
+  cancel: "Hủy",
 };
 
 export const assignmentTypeLabel: Record<string, string> = {

@@ -72,7 +72,7 @@ export default async function InternDetailPage({
         title={intern.full_name}
         description={`${intern.student_code} · ${intern.email}`}
         actions={role === "admin" || role === "hr" || role === "mentor" ? (
-          <Button variant="outline" render={<Link href={onboardingRecord ? `${onboardingBase}/${onboardingRecord.id}` : onboardingBase} />}>
+          <Button variant="outline" nativeButton={false} render={<Link href={onboardingRecord ? `${onboardingBase}/${onboardingRecord.id}` : onboardingBase} />}>
             <ClipboardCheck />Onboarding
           </Button>
         ) : undefined}

@@ -23,7 +23,7 @@ export default async function OnboardingTemplatesPage() {
       <PageHeader
         title="Cấu hình onboarding"
         description="Quản lý mẫu checklist và loại tài liệu dùng chung."
-        actions={<Button variant="outline" render={<Link href="/admin/onboarding" />}><ArrowLeft />Về danh sách</Button>}
+        actions={<Button variant="outline" nativeButton={false} render={<Link href="/admin/onboarding" />}><ArrowLeft />Về danh sách</Button>}
       />
       <OnboardingConfigurationManager
         templates={templates}

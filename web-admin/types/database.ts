@@ -41,13 +41,33 @@ export type ReviewDecision = "approved" | "changes_requested" | "rejected";
 
 export type ReviewCompletion = "none" | "partial" | "complete";
 
-export type RequestType = "leave" | "wfh" | "late" | "early_leave" | "other";
+export type RequestType =
+  | "leave"
+  | "wfh"
+  | "late"
+  | "early_leave"
+  | "other"
+  | "attendance_adjustment"
+  | "schedule_change";
 
-export type RequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type RequestStatus =
+  | "pending"
+  | "in_review"
+  | "needs_revision"
+  | "approved"
+  | "rejected"
+  | "cancelled";
 
-export type ReportStatus = "draft" | "submitted" | "approved" | "rejected";
+export type ReportStatus =
+  | "draft"
+  | "submitted"
+  | "in_review"
+  | "needs_revision"
+  | "approved"
+  | "rejected"
+  | "cancelled";
 
-export type ReportType = "daily" | "weekly";
+export type ReportType = "daily" | "weekly" | "monthly" | "final";
 
 export type EvaluationType = "weekly" | "midterm" | "final" | "feedback_360";
 
@@ -84,7 +104,15 @@ export type NotificationType =
   | "onboarding_document_reviewed"
   | "onboarding_completed"
   | "onboarding_reopened"
-  | "onboarding_cancelled";
+  | "onboarding_cancelled"
+  | "request_submitted"
+  | "request_revision"
+  | "request_taken"
+  | "request_cancelled"
+  | "report_submitted"
+  | "report_revision"
+  | "report_due_soon"
+  | "report_overdue";
 
 export type OnboardingStatus = "not_started" | "in_progress" | "completed";
 
@@ -538,10 +566,18 @@ export interface TaskReviewsRow {
 export interface AttendanceLocationsRow {
   id: string;
   name: string;
+  code: string | null;
   address: string | null;
   latitude: number;
   longitude: number;
   radius_m: number;
+  min_accuracy_meters: number;
+  check_in_start_time: string | null;
+  check_in_end_time: string | null;
+  check_out_start_time: string | null;
+  check_out_end_time: string | null;
+  department_id: string | null;
+  internship_batch_id: string | null;
   is_active: boolean;
   created_by: string | null;
   created_at: string;
@@ -555,12 +591,37 @@ export interface AttendanceRow {
   location_id: string | null;
   work_date: string;
   check_in_at: string | null;
+  check_in_latitude: number | null;
+  check_in_longitude: number | null;
+  check_in_accuracy: number | null;
+  check_in_distance_meters: number | null;
   check_out_at: string | null;
+  check_out_latitude: number | null;
+  check_out_longitude: number | null;
+  check_out_accuracy: number | null;
+  check_out_distance_meters: number | null;
+  total_working_minutes: number | null;
   status: AttendanceStatus;
   note: string | null;
   is_geo_validated: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface AttendanceVerificationLogsRow {
+  id: string;
+  user_id: string;
+  attendance_id: string | null;
+  work_location_id: string | null;
+  action: "CHECK_IN" | "CHECK_OUT" | "ADJUST";
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+  distance_meters: number | null;
+  is_valid: boolean;
+  failure_reason: string | null;
+  note: string | null;
+  verified_at: string;
 }
 
 export interface LeaveRequestsRow {
@@ -611,6 +672,67 @@ export interface LateRequestsRow {
   updated_at: string;
 }
 
+export interface RequestsRow {
+  id: string;
+  request_code: string;
+  user_id: string;
+  intern_id: string | null;
+  internship_id: string | null;
+  request_type: RequestType;
+  title: string;
+  description: string | null;
+  reason: string;
+  start_date: string | null;
+  end_date: string | null;
+  requested_start_time: string | null;
+  requested_end_time: string | null;
+  payload: Json;
+  status: RequestStatus;
+  reviewer_id: string | null;
+  reviewed_at: string | null;
+  review_comment: string | null;
+  rejection_reason: string | null;
+  revision_note: string | null;
+  submitted_at: string;
+  cancelled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RequestTypesRow {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  requires_attachment: boolean;
+  approval_policy: "mentor_or_hr" | "hr_only";
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RequestAttachmentsRow {
+  id: string;
+  request_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface RequestApprovalLogsRow {
+  id: string;
+  request_id: string;
+  actor_id: string | null;
+  action: string;
+  previous_status: string | null;
+  new_status: string | null;
+  comment: string | null;
+  created_at: string;
+}
+
 export interface DailyReportsRow {
   id: string;
   intern_id: string;
@@ -649,6 +771,100 @@ export interface WeeklyReportsRow {
   feedback: string | null;
   score: number | null;
   attachments: Json;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportsRow {
+  id: string;
+  report_code: string;
+  internship_id: string | null;
+  intern_id: string;
+  user_id: string;
+  mentor_id: string | null;
+  report_type: ReportType;
+  title: string;
+  period_start: string;
+  period_end: string;
+  content: Json;
+  links: Json;
+  status: ReportStatus;
+  submitted_at: string | null;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  review_comment: string | null;
+  rejection_reason: string | null;
+  revision_note: string | null;
+  due_date: string | null;
+  is_late: boolean;
+  cancelled_at: string | null;
+  payload: Json;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportAttachmentsRow {
+  id: string;
+  report_id: string;
+  file_name: string;
+  file_path: string;
+  file_size: number | null;
+  mime_type: string | null;
+  uploaded_by: string;
+  created_at: string;
+}
+
+export interface ReportTaskLinksRow {
+  id: string;
+  report_id: string;
+  task_id: string;
+  created_at: string;
+}
+
+export interface ReportReviewsRow {
+  id: string;
+  report_id: string;
+  actor_id: string | null;
+  action: string;
+  previous_status: string | null;
+  new_status: string | null;
+  comment: string | null;
+  created_at: string;
+}
+
+export interface ReportVersionsRow {
+  id: string;
+  report_id: string;
+  version_number: number;
+  title: string;
+  content: Json;
+  links: Json;
+  submitted_by: string | null;
+  submitted_at: string;
+  created_at: string;
+}
+
+export interface ReportTemplatesRow {
+  id: string;
+  name: string;
+  report_type: ReportType;
+  description: string | null;
+  template_content: Json;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReportSchedulesRow {
+  id: string;
+  batch_id: string;
+  report_type: ReportType;
+  frequency: "daily" | "weekly" | "monthly" | "once";
+  due_date: string | null;
+  due_time: string;
+  is_required: boolean;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -1009,6 +1225,14 @@ export interface Database {
           rel<"attendance_location_id_fkey", "location_id", "attendance_locations">,
         ]
       >;
+      attendance_verification_logs: Ident<
+        AttendanceVerificationLogsRow,
+        [
+          rel<"verification_logs_user_fkey", "user_id", "profiles">,
+          rel<"verification_logs_attendance_fkey", "attendance_id", "attendance">,
+          rel<"verification_logs_location_fkey", "work_location_id", "attendance_locations">,
+        ]
+      >;
       leave_requests: Ident<
         LeaveRequestsRow,
         [
@@ -1033,6 +1257,30 @@ export interface Database {
           rel<"late_reviewed_by_fkey", "reviewed_by", "profiles">,
         ]
       >;
+      requests: Ident<
+        RequestsRow,
+        [
+          rel<"requests_user_id_fkey", "user_id", "profiles">,
+          rel<"requests_intern_id_fkey", "intern_id", "interns">,
+          rel<"requests_internship_id_fkey", "internship_id", "internships">,
+          rel<"requests_reviewer_id_fkey", "reviewer_id", "profiles">,
+        ]
+      >;
+      request_types: Ident<RequestTypesRow>;
+      request_attachments: Ident<
+        RequestAttachmentsRow,
+        [
+          rel<"request_attachments_request_id_fkey", "request_id", "requests">,
+          rel<"request_attachments_uploaded_by_fkey", "uploaded_by", "profiles">,
+        ]
+      >;
+      request_approval_logs: Ident<
+        RequestApprovalLogsRow,
+        [
+          rel<"request_logs_request_id_fkey", "request_id", "requests">,
+          rel<"request_logs_actor_id_fkey", "actor_id", "profiles">,
+        ]
+      >;
       daily_reports: Ident<
         DailyReportsRow,
         [
@@ -1048,6 +1296,52 @@ export interface Database {
           rel<"weekly_internship_id_fkey", "internship_id", "internships">,
           rel<"weekly_reviewed_by_fkey", "reviewed_by", "profiles">,
         ]
+      >;
+      reports: Ident<
+        ReportsRow,
+        [
+          rel<"reports_intern_id_fkey", "intern_id", "interns">,
+          rel<"reports_internship_id_fkey", "internship_id", "internships">,
+          rel<"reports_user_id_fkey", "user_id", "profiles">,
+          rel<"reports_mentor_id_fkey", "mentor_id", "mentors">,
+          rel<"reports_reviewed_by_fkey", "reviewed_by", "profiles">,
+        ]
+      >;
+      report_attachments: Ident<
+        ReportAttachmentsRow,
+        [
+          rel<"report_attachments_report_id_fkey", "report_id", "reports">,
+          rel<"report_attachments_uploaded_by_fkey", "uploaded_by", "profiles">,
+        ]
+      >;
+      report_task_links: Ident<
+        ReportTaskLinksRow,
+        [
+          rel<"report_task_links_report_id_fkey", "report_id", "reports">,
+          rel<"report_task_links_task_id_fkey", "task_id", "tasks">,
+        ]
+      >;
+      report_reviews: Ident<
+        ReportReviewsRow,
+        [
+          rel<"report_reviews_report_id_fkey", "report_id", "reports">,
+          rel<"report_reviews_actor_id_fkey", "actor_id", "profiles">,
+        ]
+      >;
+      report_versions: Ident<
+        ReportVersionsRow,
+        [
+          rel<"report_versions_report_id_fkey", "report_id", "reports">,
+          rel<"report_versions_submitted_by_fkey", "submitted_by", "profiles">,
+        ]
+      >;
+      report_templates: Ident<
+        ReportTemplatesRow,
+        [rel<"report_templates_created_by_fkey", "created_by", "profiles">]
+      >;
+      report_schedules: Ident<
+        ReportSchedulesRow,
+        [rel<"report_schedules_batch_id_fkey", "batch_id", "internship_batches">]
       >;
       evaluation_criteria: Ident<EvaluationCriteriaRow>;
       evaluations: Ident<
@@ -1130,6 +1424,99 @@ export interface Database {
       attendance_rate: {
         Args: { p_internship_id: string };
         Returns: number;
+      };
+      adjust_attendance: {
+        Args: {
+          p_attendance_id: string;
+          p_status: AttendanceStatus;
+          p_note: string | null;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
+      attendance_check: {
+        Args: {
+          p_user_id: string;
+          p_action: string;
+          p_latitude: number;
+          p_longitude: number;
+          p_accuracy: number;
+          p_note?: string | null;
+        };
+        Returns: Json;
+      };
+      create_request: {
+        Args: {
+          p_request_type: string;
+          p_title: string;
+          p_reason: string;
+          p_start_date: string | null;
+          p_end_date: string | null;
+          p_start_time: string | null;
+          p_end_time: string | null;
+          p_payload?: Json;
+          p_description?: string | null;
+          p_attachment_paths?: Json;
+        };
+        Returns: Json;
+      };
+      review_request: {
+        Args: {
+          p_request_id: string;
+          p_action: string;
+          p_comment?: string | null;
+        };
+        Returns: Json;
+      };
+      get_request_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      create_report: {
+        Args: {
+          p_report_type: string;
+          p_title: string;
+          p_period_start: string;
+          p_period_end: string;
+          p_content?: Json;
+          p_links?: Json;
+          p_task_ids?: Json;
+          p_due_date?: string | null;
+          p_attachment_paths?: Json;
+          p_submit?: boolean;
+        };
+        Returns: Json;
+      };
+      update_report: {
+        Args: {
+          p_report_id: string;
+          p_title: string;
+          p_period_start: string;
+          p_period_end: string;
+          p_content?: Json;
+          p_links?: Json;
+          p_task_ids?: Json;
+          p_due_date?: string | null;
+          p_attachment_paths?: Json;
+          p_submit?: boolean;
+        };
+        Returns: Json;
+      };
+      submit_report: {
+        Args: { p_report_id: string };
+        Returns: Json;
+      };
+      review_report: {
+        Args: {
+          p_report_id: string;
+          p_action: string;
+          p_comment?: string | null;
+        };
+        Returns: Json;
+      };
+      get_report_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
       };
       task_completion_rate: {
         Args: { p_internship_id: string };

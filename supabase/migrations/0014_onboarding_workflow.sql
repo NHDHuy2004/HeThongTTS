@@ -964,6 +964,7 @@ declare
   v_intern_status public.intern_status;
   v_batch_status public.internship_status;
   v_mentor_user uuid;
+  v_assigned_hr_id uuid;
   v_template_id uuid;
   v_onboarding_id uuid;
   v_code text;

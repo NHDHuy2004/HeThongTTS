@@ -103,7 +103,7 @@ export function OnboardingRecordList({
         <Input type="date" name="start_to" defaultValue={filters.startTo} aria-label="Đến ngày bắt đầu" />
         <div className="flex gap-2 xl:col-span-7">
           <Button type="submit" size="sm"><SlidersHorizontal />Áp dụng</Button>
-          <Button type="button" size="sm" variant="outline" render={<Link href={basePath} />}>
+          <Button type="button" size="sm" variant="outline" nativeButton={false} render={<Link href={basePath} />}>
             Đặt lại
           </Button>
         </div>
@@ -150,7 +150,7 @@ export function OnboardingRecordList({
                     <TableCell className="min-w-32"><OnboardingProgress value={record.progress_percent} /></TableCell>
                     <TableCell><StatusBadge value={record.status} /></TableCell>
                     <TableCell>
-                      <Button size="sm" variant="outline" render={<Link href={`${basePath}/${record.id}`} />}>
+                      <Button size="sm" variant="outline" nativeButton={false} render={<Link href={`${basePath}/${record.id}`} />}>
                         Chi tiết
                       </Button>
                     </TableCell>
@@ -165,10 +165,10 @@ export function OnboardingRecordList({
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>Trang {safePage}/{totalPages} · {total} hồ sơ</span>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" disabled={safePage <= 1} render={<Link href={pageHref(basePath, filters, safePage - 1, filters.sort, filters.direction)} />}>
+          <Button size="sm" variant="outline" disabled={safePage <= 1} nativeButton={false} render={<Link href={pageHref(basePath, filters, safePage - 1, filters.sort, filters.direction)} />}>
             Trước
           </Button>
-          <Button size="sm" variant="outline" disabled={safePage >= totalPages} render={<Link href={pageHref(basePath, filters, safePage + 1, filters.sort, filters.direction)} />}>
+          <Button size="sm" variant="outline" nativeButton={false} disabled={safePage >= totalPages} render={<Link href={pageHref(basePath, filters, safePage + 1, filters.sort, filters.direction)} />}>
             Sau
           </Button>
         </div>

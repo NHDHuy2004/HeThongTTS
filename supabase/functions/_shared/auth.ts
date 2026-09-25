@@ -21,21 +21,25 @@ export async function getCallerUser(req: Request) {
   return { user: data.user, role: profile?.role ?? null, profile };
 }
 
-function getProfileRole(userId: string) {
-  const supabase = createAdminClient();
-  return supabase
-    .from("profiles")
-    .select("id, email, full_name, is_active, roles(code)")
-    .eq("id", userId)
-    .maybeSingle()
-    .then(({ data }) => {
-      if (!data || !data.is_active) return null;
-      return {
-        ...data,
-        role: (data.roles as { code: string } | null)?.code ?? null,
-      };
-    })
-    .catch(() => null);
+async function getProfileRole(userId: string) {
+  try {
+    const supabase = createAdminClient();
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, email, full_name, is_active, roles(code)")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!data || !data.is_active) return null;
+    const roles = (Array.isArray(data.roles) ? data.roles[0] : data.roles) as
+      | { code?: string }
+      | null;
+    return {
+      ...data,
+      role: roles?.code ?? null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Bắt buộc role — trả null nếu không thỏa. */

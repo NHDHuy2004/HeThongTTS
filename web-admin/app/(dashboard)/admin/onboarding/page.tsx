@@ -51,7 +51,7 @@ export default async function AdminOnboardingPage({
         actions={
           <>
             {role === "admin" ? (
-              <Button variant="outline" render={<Link href="/admin/onboarding/templates" />}>
+              <Button variant="outline" nativeButton={false} render={<Link href="/admin/onboarding/templates" />}>
                 <Settings2 />Cấu hình
               </Button>
             ) : null}

@@ -50,7 +50,8 @@ Deno.serve(async (req: Request) => {
         .select("mentor_id, mentors(user_id)")
         .eq("id", internshipId)
         .maybeSingle();
-      const mentor = ip?.mentors as { user_id: string } | null;
+      const mentors = ip?.mentors as unknown as { user_id: string } | { user_id: string }[] | null | undefined;
+      const mentor = Array.isArray(mentors) ? mentors[0] ?? null : mentors ?? null;
       if (mentor?.user_id !== caller.user.id) {
         return errorJson("PERMISSION_DENIED", "Bạn không phụ trách đợt này", 403);
       }

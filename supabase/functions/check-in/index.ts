@@ -148,7 +148,7 @@ Deno.serve(async (req: Request) => {
       .select("id, name, latitude, longitude, radius_m, is_active")
       .eq("is_active", true);
 
-    let matched: (typeof locations)[number] | null = null;
+    let matched: NonNullable<typeof locations>[number] | null = null;
     let minDistance = Number.POSITIVE_INFINITY;
     for (const loc of locations ?? []) {
       const dist = haversineDistanceMeters(latitude, longitude, loc.latitude, loc.longitude);
