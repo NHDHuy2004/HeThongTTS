@@ -198,17 +198,17 @@ export function InternForm({
                 checked={createAccount}
                 onChange={(e) => setCreateAccount(e.target.checked)}
               />
-              Tạo tài khoản đăng nhập cho intern
+              Tạo hoặc liên kết tài khoản đăng nhập cho intern
             </label>
             {createAccount ? (
               <div className="flex flex-col gap-2">
-                <Label htmlFor="password">Mật khẩu</Label>
+                <Label htmlFor="password">Mật khẩu nếu tạo tài khoản mới</Label>
                 <Input
                   id="password"
                   name="password"
                   type="password"
-                  placeholder="Tối thiểu 6 ký tự"
-                  required
+                  placeholder="Tối thiểu 8 ký tự"
+                  minLength={8}
                 />
               </div>
             ) : null}

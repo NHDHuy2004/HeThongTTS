@@ -5,7 +5,10 @@ export type BadgeVariant =
   | "secondary"
   | "destructive"
   | "outline"
-  | "ghost";
+  | "ghost"
+  | "orange"
+  | "accent"
+  | "success";
 
 export const statusLabel: Record<string, string> = {
   // task
@@ -34,6 +37,12 @@ export const statusLabel: Record<string, string> = {
   submitted: "Đã nộp",
   // onboarding checklist
   not_started: "Chưa bắt đầu",
+  pending_review: "Chờ HR kiểm tra",
+  needs_revision: "Cần bổ sung",
+  not_submitted: "Chưa nộp",
+  insert: "Thêm",
+  update: "Cập nhật",
+  delete: "Xóa",
   // attendance
   present: "Có mặt",
   late: "Đi muộn",
@@ -50,24 +59,36 @@ export const statusLabel: Record<string, string> = {
 };
 
 export const statusVariant: Record<string, BadgeVariant> = {
-  // positive
-  approved: "default",
-  issued: "default",
-  present: "default",
-  completed: "default",
-  active: "default",
-  converted: "default",
-  // info / in progress
-  in_progress: "secondary",
-  onboarding: "secondary",
-  submitted: "secondary",
-  upcomming: "secondary",
-  upcoming: "secondary",
-  in_review: "secondary",
+  // positive -> success (xanh lá)
+  approved: "success",
+  issued: "success",
+  present: "success",
+  completed: "success",
+  active: "success",
+  converted: "success",
+  // in progress / warning / pending / highlight -> orange (cam)
+  in_progress: "orange",
+  in_review: "orange",
+  pending_review: "orange",
+  pending: "orange",
+  onboarding: "orange",
+  submitted: "orange",
+  upcoming: "orange",
+  upcomming: "orange",
+  late: "orange",
+  high: "orange",
+  urgent: "orange",
+  // negative -> destructive
   changes_requested: "destructive",
-  pending: "secondary",
+  needs_revision: "destructive",
+  rejected: "destructive",
+  cancelled: "destructive",
+  absent: "destructive",
+  revoked: "destructive",
+  // neutral / default -> outline
   draft: "outline",
   not_started: "outline",
+  not_submitted: "outline",
   medium: "outline",
   low: "outline",
   leave: "outline",
@@ -75,15 +96,6 @@ export const statusVariant: Record<string, BadgeVariant> = {
   early_leave: "outline",
   weekend: "outline",
   working_day: "outline",
-  // warning
-  late: "secondary",
-  high: "secondary",
-  urgent: "destructive",
-  // negative
-  rejected: "destructive",
-  cancelled: "destructive",
-  absent: "destructive",
-  revoked: "destructive",
 };
 
 export function getStatusLabel(value?: string | null): string {

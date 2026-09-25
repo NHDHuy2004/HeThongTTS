@@ -46,7 +46,7 @@ export default function LoginForm() {
               <Label htmlFor="password">Mật khẩu</Label>
               <Link
                 href="/forgot-password"
-                className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+                className="text-xs text-orange-600 hover:text-orange-700 dark:text-orange-400 font-medium underline-offset-4 hover:underline"
               >
                 Quên mật khẩu?
               </Link>
@@ -61,13 +61,17 @@ export default function LoginForm() {
             />
           </div>
           {state.error && (
-            <p role="alert" className="text-sm text-destructive">
+            <p role="alert" className="text-sm text-destructive bg-destructive/10 p-2.5 rounded-lg border border-destructive/20 font-medium">
               {state.error}
             </p>
           )}
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full" disabled={pending}>
+          <Button
+            type="submit"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition-all"
+            disabled={pending}
+          >
             {pending ? "Đang đăng nhập..." : "Đăng nhập"}
           </Button>
         </CardFooter>

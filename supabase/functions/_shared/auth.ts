@@ -25,11 +25,11 @@ function getProfileRole(userId: string) {
   const supabase = createAdminClient();
   return supabase
     .from("profiles")
-    .select("id, email, full_name, roles(code)")
+    .select("id, email, full_name, is_active, roles(code)")
     .eq("id", userId)
     .maybeSingle()
     .then(({ data }) => {
-      if (!data) return null;
+      if (!data || !data.is_active) return null;
       return {
         ...data,
         role: (data.roles as { code: string } | null)?.code ?? null,

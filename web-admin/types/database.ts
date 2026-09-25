@@ -74,9 +74,41 @@ export type NotificationType =
   | "evaluation"
   | "certificate"
   | "system"
-  | "message";
+  | "message"
+  | "onboarding_assigned"
+  | "onboarding_updated"
+  | "onboarding_due_soon"
+  | "onboarding_overdue"
+  | "onboarding_checklist_submitted"
+  | "onboarding_document_submitted"
+  | "onboarding_document_reviewed"
+  | "onboarding_completed"
+  | "onboarding_reopened"
+  | "onboarding_cancelled";
 
 export type OnboardingStatus = "not_started" | "in_progress" | "completed";
+
+export type OnboardingRecordStatus =
+  | "not_started"
+  | "in_progress"
+  | "pending_review"
+  | "needs_revision"
+  | "completed"
+  | "cancelled";
+
+export type OnboardingChecklistStatus =
+  | "not_started"
+  | "in_progress"
+  | "pending_review"
+  | "needs_revision"
+  | "completed"
+  | "cancelled";
+
+export type OnboardingDocumentStatus =
+  | "not_submitted"
+  | "pending_review"
+  | "approved"
+  | "needs_revision";
 
 export type CertificateStatus = "draft" | "issued" | "revoked";
 
@@ -145,6 +177,9 @@ export interface InternsRow {
   gender: "male" | "female" | "other" | null;
   birth_date: string | null;
   address: string | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
+  emergency_contact_email: string | null;
   school: string | null;
   major: string | null;
   class_name: string | null;
@@ -187,11 +222,28 @@ export interface InternshipsRow {
   updated_at: string;
 }
 
+export interface OnboardingDocumentTypesRow {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  is_required_default: boolean;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface DocumentsRow {
   id: string;
   title: string;
   description: string | null;
   bucket: string;
+  document_type: string | null;
+  file_name: string | null;
+  version: number;
+  is_required_default: boolean;
+  is_guidance: boolean;
   file_path: string | null;
   file_url: string | null;
   mime_type: string | null;
@@ -215,6 +267,132 @@ export interface OnboardingChecklistsRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface OnboardingChecklistTemplatesRow {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  is_default: boolean;
+  is_active: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnboardingChecklistTemplateItemsRow {
+  id: string;
+  template_id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  is_required: boolean;
+  sort_order: number;
+  due_offset_days: number | null;
+  default_assignee_role: UserRole | null;
+  guide_document_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnboardingRecordsRow {
+  id: string;
+  code: string;
+  internship_id: string;
+  batch_id: string;
+  department_id: string | null;
+  mentor_id: string | null;
+  assigned_hr_id: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  onboarding_start_date: string;
+  due_date: string;
+  status: OnboardingRecordStatus;
+  progress_percent: number;
+  notes: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
+  cancelled_at: string | null;
+  cancelled_by: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnboardingChecklistItemsRow {
+  id: string;
+  onboarding_id: string | null;
+  legacy_intern_id: string | null;
+  template_item_id: string | null;
+  title: string;
+  description: string | null;
+  category: string;
+  guide_document_id: string | null;
+  assigned_to: string | null;
+  performer_id: string | null;
+  status: OnboardingChecklistStatus;
+  start_date: string | null;
+  due_date: string | null;
+  is_required: boolean;
+  review_required: boolean;
+  sort_order: number;
+  started_at: string | null;
+  completed_at: string | null;
+  completed_by: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  feedback: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OnboardingDocumentsRow {
+  id: string;
+  onboarding_id: string;
+  catalog_document_id: string | null;
+  document_name: string;
+  document_type: string | null;
+  description: string | null;
+  is_required: boolean;
+  visible_to_mentor: boolean;
+  due_date: string | null;
+  status: OnboardingDocumentStatus;
+  submitted_by: string | null;
+  submitted_at: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  feedback: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  current_version_id: string | null;
+  reviewed_version_id: string | null;
+}
+
+export interface OnboardingDocumentVersionsRow {
+  id: string;
+  document_id: string;
+  file_path: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_by: string | null;
+  uploaded_at: string;
+  version_number: number;
+}
+
+export interface OnboardingActivityLogsRow {
+  id: string;
+  onboarding_id: string;
+  actor_id: string | null;
+  action: string;
+  entity_type: string;
+  entity_id: string | null;
+  details: Json;
+  created_at: string;
 }
 
 export interface TaskTemplatesRow {
@@ -539,6 +717,7 @@ export interface NotificationsRow {
   title: string;
   body: string | null;
   data: Json | null;
+  dedupe_key: string | null;
   read_at: string | null;
   created_at: string;
 }
@@ -625,19 +804,126 @@ export interface Database {
           rel<"internships_created_by_fkey", "created_by", "profiles">,
         ]
       >;
+      onboarding_document_types: Ident<
+        OnboardingDocumentTypesRow,
+        [rel<"onboarding_document_types_created_by_fkey", "created_by", "profiles">]
+      >;
       documents: Ident<
         DocumentsRow,
         [
+          {
+            foreignKeyName: "documents_document_type_fkey";
+            columns: ["document_type"];
+            referencedRelation: "onboarding_document_types";
+            referencedColumns: ["code"];
+          },
           rel<"documents_batch_id_fkey", "batch_id", "internship_batches">,
           rel<"documents_department_id_fkey", "department_id", "departments">,
           rel<"documents_created_by_fkey", "created_by", "profiles">,
         ]
       >;
-      onboarding_checklists: Ident<
-        OnboardingChecklistsRow,
+      onboarding_checklist_templates: Ident<
+        OnboardingChecklistTemplatesRow,
+        [rel<"onboarding_checklist_templates_created_by_fkey", "created_by", "profiles">]
+      >;
+      onboarding_checklist_template_items: Ident<
+        OnboardingChecklistTemplateItemsRow,
         [
-          rel<"checklists_intern_id_fkey", "intern_id", "interns">,
+          rel<
+            "onboarding_checklist_template_items_template_id_fkey",
+            "template_id",
+            "onboarding_checklist_templates"
+          >,
+          rel<
+            "onboarding_checklist_template_items_guide_document_id_fkey",
+            "guide_document_id",
+            "documents"
+          >,
+        ]
+      >;
+      onboarding_records: Ident<
+        OnboardingRecordsRow,
+        [
+          {
+            foreignKeyName: "onboarding_records_internship_id_fkey";
+            columns: ["internship_id"];
+            isOneToOne: true;
+            referencedRelation: "internships";
+            referencedColumns: ["id"];
+          },
+          rel<"onboarding_records_batch_id_fkey", "batch_id", "internship_batches">,
+          rel<"onboarding_records_department_id_fkey", "department_id", "departments">,
+          rel<"onboarding_records_mentor_id_fkey", "mentor_id", "mentors">,
+          rel<"onboarding_records_assigned_hr_id_fkey", "assigned_hr_id", "profiles">,
+          rel<"onboarding_records_completed_by_fkey", "completed_by", "profiles">,
+          rel<"onboarding_records_cancelled_by_fkey", "cancelled_by", "profiles">,
+          rel<"onboarding_records_created_by_fkey", "created_by", "profiles">,
+        ]
+      >;
+      onboarding_checklist_items: Ident<
+        OnboardingChecklistItemsRow,
+        [
+          rel<
+            "onboarding_checklist_items_onboarding_id_fkey",
+            "onboarding_id",
+            "onboarding_records"
+          >,
+          rel<"onboarding_checklist_items_legacy_intern_id_fkey", "legacy_intern_id", "interns">,
+          rel<
+            "onboarding_checklist_items_template_item_id_fkey",
+            "template_item_id",
+            "onboarding_checklist_template_items"
+          >,
+          rel<"onboarding_checklist_items_guide_document_id_fkey", "guide_document_id", "documents">,
+          rel<"onboarding_checklist_items_assigned_to_fkey", "assigned_to", "profiles">,
+          rel<"onboarding_checklist_items_performer_id_fkey", "performer_id", "profiles">,
+          rel<"onboarding_checklist_items_completed_by_fkey", "completed_by", "profiles">,
+          rel<"onboarding_checklist_items_reviewed_by_fkey", "reviewed_by", "profiles">,
           rel<"checklists_created_by_fkey", "created_by", "profiles">,
+        ]
+      >;
+      onboarding_documents: Ident<
+        OnboardingDocumentsRow,
+        [
+          rel<"onboarding_documents_onboarding_id_fkey", "onboarding_id", "onboarding_records">,
+          rel<"onboarding_documents_catalog_document_id_fkey", "catalog_document_id", "documents">,
+          {
+            foreignKeyName: "onboarding_documents_document_type_fkey";
+            columns: ["document_type"];
+            referencedRelation: "onboarding_document_types";
+            referencedColumns: ["code"];
+          },
+          rel<"onboarding_documents_submitted_by_fkey", "submitted_by", "profiles">,
+          rel<"onboarding_documents_reviewed_by_fkey", "reviewed_by", "profiles">,
+          rel<"onboarding_documents_created_by_fkey", "created_by", "profiles">,
+          rel<
+            "onboarding_documents_current_version_fkey",
+            "current_version_id",
+            "onboarding_document_versions"
+          >,
+          rel<
+            "onboarding_documents_reviewed_version_fkey",
+            "reviewed_version_id",
+            "onboarding_document_versions"
+          >,
+        ]
+      >;
+      onboarding_document_versions: Ident<
+        OnboardingDocumentVersionsRow,
+        [
+          rel<
+            "onboarding_document_versions_document_id_fkey",
+            "document_id",
+            "onboarding_documents"
+          >,
+          rel<"onboarding_document_versions_uploaded_by_fkey", "uploaded_by", "profiles">,
+        ]
+      >;
+      onboarding_activity_logs: Ident<
+        OnboardingActivityLogsRow,
+        [
+          rel<"onboarding_activity_logs_onboarding_id_fkey", "onboarding_id", "onboarding_records">,
+          rel<"onboarding_activity_logs_actor_id_fkey", "actor_id", "profiles">,
         ]
       >;
       task_templates: Ident<
@@ -853,6 +1139,170 @@ export interface Database {
         Args: { p_internship_id: string };
         Returns: number;
       };
+      is_mentor_of_intern: {
+        Args: { p_intern_id: string };
+        Returns: boolean;
+      };
+      is_mentor_of: {
+        Args: { target_user_id: string };
+        Returns: boolean;
+      };
+      is_mentor_of_internship: {
+        Args: { p_internship_id: string };
+        Returns: boolean;
+      };
+      existing_profile_role_id: {
+        Args: { p_id: string };
+        Returns: string;
+      };
+      existing_profile_is_active: {
+        Args: { p_id: string };
+        Returns: boolean;
+      };
+      existing_intern_status: {
+        Args: { p_id: string };
+        Returns: InternStatus;
+      };
+      existing_intern_deleted_at: {
+        Args: { p_id: string };
+        Returns: string;
+      };
+      can_manage_onboarding: {
+        Args: { p_onboarding_id: string };
+        Returns: boolean;
+      };
+      can_read_onboarding: {
+        Args: { p_onboarding_id: string };
+        Returns: boolean;
+      };
+      can_review_onboarding_item: {
+        Args: { p_item_id: string };
+        Returns: boolean;
+      };
+      can_read_onboarding_document: {
+        Args: { p_document_id: string };
+        Returns: boolean;
+      };
+      can_submit_onboarding_document: {
+        Args: { p_document_id: string };
+        Returns: boolean;
+      };
+      can_read_document_catalog: {
+        Args: { p_document_id: string };
+        Returns: boolean;
+      };
+      can_read_onboarding_storage_path: {
+        Args: { p_object_name: string };
+        Returns: boolean;
+      };
+      can_write_onboarding_storage_path: {
+        Args: { p_object_name: string };
+        Returns: boolean;
+      };
+      create_onboarding_record: {
+        Args: {
+          p_internship_id: string;
+          p_onboarding_start_date: string;
+          p_due_date: string;
+          p_assigned_hr_id?: string | null;
+          p_template_id?: string | null;
+          p_notes?: string | null;
+        };
+        Returns: string;
+      };
+      update_onboarding_record: {
+        Args: {
+          p_onboarding_id: string;
+          p_assigned_hr_id: string;
+          p_start_date: string | null;
+          p_end_date: string | null;
+          p_onboarding_start_date: string;
+          p_due_date: string;
+          p_department_id: string | null;
+          p_mentor_id: string | null;
+          p_notes: string | null;
+        };
+        Returns: void;
+      };
+      submit_onboarding_checklist_item: {
+        Args: {
+          p_item_id: string;
+          p_status: OnboardingChecklistStatus;
+        };
+        Returns: void;
+      };
+      review_onboarding_checklist_item: {
+        Args: {
+          p_item_id: string;
+          p_decision: string;
+          p_feedback?: string | null;
+        };
+        Returns: void;
+      };
+      submit_onboarding_document_version: {
+        Args: {
+          p_document_id: string;
+          p_file_path: string;
+          p_file_name: string;
+          p_file_size: number;
+          p_mime_type: string;
+        };
+        Returns: string;
+      };
+      review_onboarding_document: {
+        Args: {
+          p_document_id: string;
+          p_version_id: string;
+          p_approved: boolean;
+          p_feedback?: string | null;
+        };
+        Returns: void;
+      };
+      complete_onboarding: {
+        Args: { p_onboarding_id: string };
+        Returns: void;
+      };
+      cancel_onboarding: {
+        Args: {
+          p_onboarding_id: string;
+          p_reason: string;
+        };
+        Returns: void;
+      };
+      reopen_onboarding: {
+        Args: {
+          p_onboarding_id: string;
+          p_reason: string;
+        };
+        Returns: void;
+      };
+      activate_internship: {
+        Args: { p_internship_id: string };
+        Returns: void;
+      };
+      update_my_onboarding_profile: {
+        Args: {
+          p_full_name: string;
+          p_phone: string | null;
+          p_address: string | null;
+          p_emergency_contact_name: string | null;
+          p_emergency_contact_phone: string | null;
+          p_emergency_contact_email: string | null;
+        };
+        Returns: void;
+      };
+      get_onboarding_progress: {
+        Args: { p_onboarding_id: string };
+        Returns: Json;
+      };
+      get_onboarding_dashboard_stats: {
+        Args: Record<PropertyKey, never>;
+        Returns: Json;
+      };
+      list_onboarding_internship_ids_for_hr: {
+        Args: Record<PropertyKey, never>;
+        Returns: string[];
+      };
     };
     Enums: {
       user_role: UserRole;
@@ -872,6 +1322,9 @@ export interface Database {
       day_status: DayStatus;
       notification_type: NotificationType;
       onboarding_status: OnboardingStatus;
+      onboarding_record_status: OnboardingRecordStatus;
+      onboarding_checklist_status: OnboardingChecklistStatus;
+      onboarding_document_status: OnboardingDocumentStatus;
       certificate_status: CertificateStatus;
       device_platform: DevicePlatform;
     };

@@ -197,3 +197,149 @@ begin;
   select public._assert('anon: không xem được interns',
     (select count(*) from public.interns), 0);
 rollback;
+
+begin;
+  update public.internships
+  set status = 'upcoming'
+  where id = '70000000-0000-0000-0000-000000000001';
+
+  set local role authenticated;
+  set local request.jwt.claim.sub = '40000000-0000-0000-0000-000000000002';
+
+  do $$
+  declare
+    v_onboarding_id uuid;
+  begin
+    v_onboarding_id := public.create_onboarding_record(
+      '70000000-0000-0000-0000-000000000001',
+      current_date,
+      current_date + 7,
+      '40000000-0000-0000-0000-000000000002',
+      null,
+      null
+    );
+    perform public._assert(
+      'hr: tạo onboarding và áp dụng mẫu',
+      (select count(*) from public.onboarding_records where id = v_onboarding_id),
+      1
+    );
+    perform public._assert(
+      'hr: mẫu tạo checklist cho intern',
+      (select count(*) from public.onboarding_checklist_items where onboarding_id = v_onboarding_id),
+      17
+    );
+  end;
+  $$;
+
+  insert into public.onboarding_documents (
+    onboarding_id,
+    document_name,
+    document_type,
+    is_required,
+    visible_to_mentor
+  )
+  select id, 'Tài liệu nhạy cảm', 'identity', true, false
+  from public.onboarding_records
+  limit 1;
+
+  set local request.jwt.claim.sub = '40000000-0000-0000-0000-000000000004';
+  select public._assert(
+    'intern: thấy hồ sơ của chính mình',
+    (select count(*) from public.onboarding_records),
+    1
+  );
+  select public._assert(
+    'intern: thấy checklist của hồ sơ',
+    (select count(*) from public.onboarding_checklist_items),
+    17
+  );
+  select public._assert(
+    'intern: thấy tài liệu của chính mình',
+    (select count(*) from public.onboarding_documents),
+    1
+  );
+
+  do $$
+  declare
+    v_item_id uuid;
+  begin
+    select id into v_item_id
+    from public.onboarding_checklist_items
+    where assigned_to = '40000000-0000-0000-0000-000000000004'
+    order by sort_order
+    limit 1;
+
+    perform public.submit_onboarding_checklist_item(v_item_id, 'pending_review');
+    perform public._assert(
+      'intern: gửi được checklist được giao',
+      (select count(*) from public.onboarding_checklist_items where id = v_item_id and status = 'pending_review'),
+      1
+    );
+  end;
+  $$;
+
+  do $$
+  begin
+    begin
+      update public.onboarding_records
+      set notes = 'Intern cố tự sửa hồ sơ'
+      where id = (select id from public.onboarding_records limit 1);
+      raise exception 'FAIL: intern sửa onboarding_records trực tiếp được';
+    exception
+      when insufficient_privilege or sqlstate '42501' then
+        raise log 'PASS: intern bị chặn sửa onboarding_records trực tiếp';
+    end;
+  end;
+  $$;
+
+  do $$
+  begin
+    begin
+      update public.onboarding_records
+      set status = 'completed'
+      where id = (select id from public.onboarding_records limit 1);
+      raise exception 'FAIL: intern tự set status=completed trực tiếp được';
+    exception
+      when insufficient_privilege or sqlstate '42501' then
+        raise log 'PASS: intern bị chặn set status=completed trực tiếp';
+    end;
+  end;
+  $$;
+
+  do $$
+  begin
+    begin
+      perform public.complete_onboarding((select id from public.onboarding_records limit 1));
+      raise exception 'FAIL: intern tự hoàn tất onboarding được';
+    exception
+      when insufficient_privilege or sqlstate '42501' then
+        raise log 'PASS: intern bị chặn tự hoàn tất onboarding';
+    end;
+  end;
+  $$;
+
+  set local request.jwt.claim.sub = '40000000-0000-0000-0000-000000000003';
+  select public._assert(
+    'mentor: thấy hồ sơ được phân công',
+    (select count(*) from public.onboarding_records),
+    1
+  );
+  select public._assert(
+    'mentor: không thấy tài liệu nhạy cảm bị ẩn',
+    (select count(*) from public.onboarding_documents),
+    0
+  );
+
+  set local request.jwt.claim.sub = '40000000-0000-0000-0000-000000000002';
+  do $$
+  begin
+    begin
+      perform public.complete_onboarding((select id from public.onboarding_records limit 1));
+      raise exception 'FAIL: HR hoàn tất khi còn điều kiện bắt buộc';
+    exception
+      when check_violation then
+        raise log 'PASS: bị chặn hoàn tất khi còn điều kiện bắt buộc';
+    end;
+  end;
+  $$;
+rollback;

@@ -7,6 +7,8 @@ import { sendFcm } from "../_shared/fcm.ts";
 const ALLOWED_TYPES = [
   "task_assigned",
   "task_updated",
+  "task_review_approved",
+  "task_review_changes",
   "report_approved",
   "report_rejected",
   "request_approved",
@@ -15,6 +17,16 @@ const ALLOWED_TYPES = [
   "certificate",
   "system",
   "message",
+  "onboarding_assigned",
+  "onboarding_updated",
+  "onboarding_due_soon",
+  "onboarding_overdue",
+  "onboarding_checklist_submitted",
+  "onboarding_document_submitted",
+  "onboarding_document_reviewed",
+  "onboarding_completed",
+  "onboarding_reopened",
+  "onboarding_cancelled",
 ];
 
 Deno.serve(async (req: Request) => {

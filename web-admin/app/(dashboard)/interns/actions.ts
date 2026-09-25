@@ -62,13 +62,43 @@ export async function createIntern(
   if (!input.student_code || !input.full_name || !input.email) {
     return { error: "Vui lòng nhập đủ mã SV, họ tên và email." };
   }
-  if (input.create_account && (!input.password || input.password.length < 6)) {
-    return { error: "Mật khẩu cho tài khoản phải có tối thiểu 6 ký tự." };
+
+  let existingProfileId: string | null = null;
+  let existingProfileRole: string | null = null;
+  if (input.create_account) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, roles(code)")
+      .ilike("email", input.email)
+      .maybeSingle();
+    const matchedProfile = profile as unknown as { id: string; roles: { code: string } | null } | null;
+    existingProfileId = matchedProfile?.id ?? null;
+    existingProfileRole = matchedProfile?.roles?.code ?? null;
   }
 
-  // 1. Tạo tài khoản auth (service role) → trigger tự tạo profile (role intern)
-  let user_id: string | null = null;
-  if (input.create_account) {
+  if (input.create_account && !existingProfileId && (!input.password || input.password.length < 8)) {
+    return { error: "Mật khẩu cho tài khoản phải có tối thiểu 8 ký tự." };
+  }
+
+  if (existingProfileId && existingProfileRole !== "intern") {
+    return { error: "Email đã thuộc tài khoản không phải thực tập sinh." };
+  }
+
+  if (existingProfileId) {
+    const { data: linkedIntern } = await supabase
+      .from("interns")
+      .select("id")
+      .eq("user_id", existingProfileId)
+      .is("deleted_at", null)
+      .maybeSingle();
+    if (linkedIntern) {
+      return { error: "Tài khoản này đã được liên kết với một hồ sơ thực tập sinh khác." };
+    }
+  }
+
+  let user_id: string | null = existingProfileId;
+  let createdUserId: string | null = null;
+  if (input.create_account && !existingProfileId) {
     const admin = createAdminClient();
     const {
       data: authUser,
@@ -79,8 +109,9 @@ export async function createIntern(
       email_confirm: true,
       user_metadata: { full_name: input.full_name, role: "intern" },
     });
-    if (authErr) return { error: authErr.message };
+    if (authErr || !authUser.user) return { error: authErr?.message ?? "Không thể tạo tài khoản." };
     user_id = authUser.user.id;
+    createdUserId = authUser.user.id;
   }
 
   // 2. Tạo hồ sơ intern
@@ -102,7 +133,13 @@ export async function createIntern(
     })
     .select("id")
     .single();
-  if (error) return { error: error.message };
+  if (error) {
+    if (createdUserId) {
+      const admin = createAdminClient();
+      await admin.auth.admin.deleteUser(createdUserId);
+    }
+    return { error: error.message };
+  }
 
   // 3. Gán vào đợt + phòng ban + mentor (nếu có)
   if (input.batch_id) {
@@ -114,7 +151,14 @@ export async function createIntern(
       status: "upcoming",
       created_by: user.id,
     });
-    if (ipErr) return { error: ipErr.message };
+    if (ipErr) {
+      await supabase.from("interns").delete().eq("id", intern.id);
+      if (createdUserId) {
+        const admin = createAdminClient();
+        await admin.auth.admin.deleteUser(createdUserId);
+      }
+      return { error: ipErr.message };
+    }
   }
 
   return {};

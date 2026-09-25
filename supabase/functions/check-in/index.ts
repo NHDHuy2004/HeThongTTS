@@ -3,8 +3,10 @@ import { AppError, errorFrom, errorJson, json } from "../_shared/errors.ts";
 import { handleCors } from "../_shared/cors.ts";
 
 type CheckInPayload = {
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
+  lat?: number;
+  lng?: number;
   internship_id?: string;
   check_out?: boolean;
   note?: string;
@@ -66,8 +68,8 @@ Deno.serve(async (req: Request) => {
     const body = (await req.json().catch(() => null)) as CheckInPayload | null;
     if (!body) return errorJson("VALIDATION_ERROR", "Body không hợp lệ");
 
-    const latitude = Number(body.latitude);
-    const longitude = Number(body.longitude);
+    const latitude = Number(body.latitude ?? body.lat);
+    const longitude = Number(body.longitude ?? body.lng);
     if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
       return errorJson("VALIDATION_ERROR", "Thiếu tọa độ GPS hợp lệ");
     }
@@ -98,18 +100,46 @@ Deno.serve(async (req: Request) => {
 
     // 3. Xác định internship đang active
     let internshipId = body.internship_id ?? null;
-    if (!internshipId) {
-      const { data: active } = await supabase
+    if (internshipId) {
+      const { data: internship, error: internshipErr } = await supabase
+        .from("internships")
+        .select("id")
+        .eq("id", internshipId)
+        .eq("intern_id", intern.id)
+        .eq("status", "active")
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (internshipErr) throw new AppError("DB_ERROR", internshipErr.message, 500, internshipErr);
+      if (!internship) {
+        return errorJson(
+          "PERMISSION_DENIED",
+          "Đợt thực tập không thuộc về bạn hoặc không đang hoạt động",
+          403,
+        );
+      }
+    } else {
+      const { data: active, error: activeErr } = await supabase
         .from("internships")
         .select("id")
         .eq("intern_id", intern.id)
         .eq("status", "active")
         .is("deleted_at", null)
         .maybeSingle();
+      if (activeErr) throw new AppError("DB_ERROR", activeErr.message, 500, activeErr);
       internshipId = active?.id ?? null;
     }
     if (!internshipId) {
       return errorJson("GPS_VALIDATION_ERROR", "Bạn chưa có đợt thực tập đang hoạt động", 403);
+    }
+
+    const { data: onboarding, error: onboardingErr } = await supabase
+      .from("onboarding_records")
+      .select("status")
+      .eq("internship_id", internshipId)
+      .maybeSingle();
+    if (onboardingErr) throw new AppError("DB_ERROR", onboardingErr.message, 500, onboardingErr);
+    if (onboarding && onboarding.status !== "completed") {
+      return errorJson("PERMISSION_DENIED", "Onboarding chưa hoàn thành", 403);
     }
 
     // 4. Validate GPS theo attendance_locations (server-side — chống gian lận)

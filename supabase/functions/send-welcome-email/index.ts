@@ -1,6 +1,7 @@
 import { AppError, errorFrom, errorJson, json } from "../_shared/errors.ts";
 import { handleCors } from "../_shared/cors.ts";
 import { getCallerUser } from "../_shared/auth.ts";
+import { createAdminClient } from "../_shared/supabase.ts";
 import { layoutHtml, sendResendEmail } from "../_shared/resend.ts";
 
 type TemplateData = Record<string, string | number>;
@@ -98,30 +99,59 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = (await req.json().catch(() => null)) as {
-      to?: string;
+      onboarding_id?: string;
       template?: string;
-      data?: TemplateData;
-      subject?: string;
     } | null;
 
-    if (!body?.to) return errorJson("VALIDATION_ERROR", "Thiếu 'to'");
-    if (!body.template) return errorJson("VALIDATION_ERROR", "Thiếu 'template'");
+    if (!body?.onboarding_id) return errorJson("VALIDATION_ERROR", "Thiếu 'onboarding_id'");
+    const template = body.template ?? "welcome";
 
     const caller = await getCallerUser(req);
-    if (!caller?.role || (caller.role !== "admin" && caller.role !== "hr" && caller.role !== "mentor")) {
-      return errorJson("PERMISSION_DENIED", "Chỉ admin/HR/mentor được gửi email", 403);
+    if (!caller?.role || (caller.role !== "admin" && caller.role !== "hr")) {
+      return errorJson("PERMISSION_DENIED", "Chỉ admin/HR được gửi email", 403);
     }
 
-    const render = EMAIL_TEMPLATES[body.template];
-    if (!render) {
-      return errorJson("VALIDATION_ERROR", `Template không tồn tại: ${body.template} (có: ${Object.keys(EMAIL_TEMPLATES).join(", ")})`);
+    const render = EMAIL_TEMPLATES[template];
+    if (template !== "welcome" || !render) {
+      return errorJson("VALIDATION_ERROR", `Template không tồn tại: ${template} (có: ${Object.keys(EMAIL_TEMPLATES).join(", ")})`);
     }
 
-    const { subject, html } = render(body.data ?? {});
+    const supabase = createAdminClient();
+    const { data: onboarding, error: onboardingError } = await supabase
+      .from("onboarding_records")
+      .select(
+        "status, assigned_hr_id, internships!inner(interns!inner(full_name,email), internship_batches!inner(name,start_date,end_date), departments(name), mentors(full_name))",
+      )
+      .eq("id", body.onboarding_id)
+      .maybeSingle();
+    if (onboardingError) throw new AppError("DB_ERROR", onboardingError.message, 500, onboardingError);
+    if (!onboarding) return errorJson("NOT_FOUND", "Không tìm thấy hồ sơ onboarding", 404);
+    if (caller.role === "hr" && onboarding.assigned_hr_id && onboarding.assigned_hr_id !== caller.user.id) {
+      return errorJson("PERMISSION_DENIED", "Hồ sơ không thuộc phạm vi phụ trách", 403);
+    }
+    if (onboarding.status === "cancelled" || onboarding.status === "completed") {
+      return errorJson("VALIDATION_ERROR", "Không thể gửi email cho hồ sơ đã đóng", 400);
+    }
+
+    const internship = onboarding.internships as unknown as {
+      interns: { full_name: string; email: string };
+      internship_batches: { name: string; start_date: string | null; end_date: string | null };
+      departments: { name: string } | null;
+      mentors: { full_name: string } | null;
+    };
+    const templateData: TemplateData = {
+      full_name: internship.interns.full_name,
+      batch_name: internship.internship_batches.name,
+      department_name: internship.departments?.name ?? "—",
+      mentor_name: internship.mentors?.full_name ?? "Sẽ được phân công",
+      start_date: internship.internship_batches.start_date ?? "—",
+      end_date: internship.internship_batches.end_date ?? "—",
+    };
+    const { subject, html } = render(templateData);
 
     const result = await sendResendEmail({
-      to: body.to,
-      subject: body.subject ?? subject,
+      to: internship.interns.email,
+      subject,
       html,
     });
 

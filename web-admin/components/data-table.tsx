@@ -80,12 +80,12 @@ export function DataTable<T>({
           description="Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc."
         />
       ) : (
-        <div className="rounded-xl border">
+        <div className="rounded-xl border border-border/80 bg-card shadow-xs overflow-hidden">
           <Table>
-            <TableHeader>
-              <TableRow>
+            <TableHeader className="bg-muted/40 border-b border-border/70">
+              <TableRow className="hover:bg-transparent">
                 {columns.map((col) => (
-                  <TableHead key={col.key} className={col.className}>
+                  <TableHead key={col.key} className={cn("font-semibold text-foreground/80 py-3 text-xs tracking-wider uppercase", col.className)}>
                     {col.header}
                   </TableHead>
                 ))}
@@ -93,9 +93,9 @@ export function DataTable<T>({
             </TableHeader>
             <TableBody>
               {pageRows.map((row, i) => (
-                <TableRow key={i}>
+                <TableRow key={i} className="hover:bg-emerald-500/5 transition-colors border-b border-border/50 last:border-0">
                   {columns.map((col) => (
-                    <TableCell key={col.key} className={cn(col.className)}>
+                    <TableCell key={col.key} className={cn("py-3 text-sm", col.className)}>
                       {col.cell(row)}
                     </TableCell>
                   ))}
@@ -107,14 +107,15 @@ export function DataTable<T>({
       )}
 
       {totalPages > 1 ? (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
-            Trang {safePage} / {totalPages} · {rows.length} dòng
+        <div className="flex items-center justify-between px-1">
+          <p className="text-xs font-medium text-muted-foreground">
+            Trang <span className="font-semibold text-foreground">{safePage}</span> / {totalPages} · {rows.length} dòng
           </p>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
+              className="hover:border-emerald-600/40 hover:text-emerald-700"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
@@ -123,6 +124,7 @@ export function DataTable<T>({
             <Button
               variant="outline"
               size="sm"
+              className="hover:border-emerald-600/40 hover:text-emerald-700"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >

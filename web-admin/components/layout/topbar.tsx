@@ -36,22 +36,27 @@ export function Topbar({
         </SheetContent>
       </Sheet>
 
-      <div className="hidden items-center gap-1 text-sm sm:flex">
-        <span className="font-medium">{user.full_name}</span>
-        <span className="text-muted-foreground">
-          · {roleLabel[user.role] ?? user.role}
+      <div className="hidden items-center gap-2 text-sm sm:flex">
+        <span className="font-semibold text-foreground">{user.full_name}</span>
+        <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-300">
+          {roleLabel[user.role] ?? user.role}
         </span>
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <Avatar className="size-8" aria-label={user.full_name}>
-          <span className="flex h-full w-full items-center justify-center bg-muted text-xs font-semibold">
+        <Avatar className="size-8.5 ring-2 ring-emerald-600/20" aria-label={user.full_name}>
+          <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-600 to-emerald-800 text-white text-xs font-bold shadow-xs">
             {user.full_name.slice(0, 2).toUpperCase()}
           </span>
         </Avatar>
         <Separator orientation="vertical" className="h-5" />
         <form action={logout}>
-          <Button type="submit" variant="outline" size="sm">
+          <Button
+            type="submit"
+            variant="outline"
+            size="sm"
+            className="border-emerald-600/30 hover:border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-700 text-xs font-medium transition-colors"
+          >
             Đăng xuất
           </Button>
         </form>

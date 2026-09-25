@@ -3,17 +3,8 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
-import { DataTable, type Column } from "@/components/data-table";
-import { formatDate, evaluationTypeLabel } from "@/features/labels";
-import type { EvaluationsRow } from "@/types/database";
 import { EvalForm } from "./eval-form";
-import { SubmitEvaluation } from "./submit-evaluation";
-
-type EvalRow = EvaluationsRow & {
-  internships: {
-    interns: { full_name: string } | null;
-  } | null;
-};
+import { EvaluationsTable, type EvalRow } from "./evaluations-table";
 
 export default async function EvaluationsPage() {
   const session = await requireAuth();
@@ -96,31 +87,6 @@ export default async function EvaluationsPage() {
     redirect("/dashboard");
   }
 
-  const columns: Column<EvalRow>[] = [
-    {
-      key: "internship_id",
-      header: "Intern",
-      cell: (r) => <span className="font-medium">{r.internships?.interns?.full_name ?? "—"}</span>,
-    },
-    {
-      key: "type",
-      header: "Loại",
-      cell: (r) => evaluationTypeLabel[r.type] ?? r.type,
-    },
-    { key: "period_label", header: "Kỳ", cell: (r) => r.period_label },
-    { key: "due_date", header: "Hạn", cell: (r) => formatDate(r.due_date) },
-    {
-      key: "final_score",
-      header: "Điểm",
-      cell: (r) => (r.final_score !== null ? `${r.final_score}đ` : "—"),
-    },
-    {
-      key: "submitted_at",
-      header: "Trạng thái",
-      cell: (r) => (r.submitted_at ? "Đã nộp" : "Chưa nộp"),
-    },
-  ];
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -128,21 +94,7 @@ export default async function EvaluationsPage() {
         description="Phiếu đánh giá định kỳ cho thực tập sinh"
         actions={canManage ? <EvalForm internships={internships} /> : undefined}
       />
-      <DataTable
-        data={rows}
-        columns={[
-          ...columns,
-          {
-            key: "actions",
-            header: "",
-            cell: (r) => (
-              <SubmitEvaluation id={r.id} submitted={Boolean(r.submitted_at)} />
-            ),
-          },
-        ]}
-        searchKeys={["period_label", "internships.interns.full_name"]}
-        searchPlaceholder="Tìm theo tên intern, kỳ đánh giá..."
-      />
+      <EvaluationsTable data={rows} />
     </div>
   );
 }

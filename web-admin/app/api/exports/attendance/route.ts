@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getAuthErrorMessage } from "@/lib/errors";
 
 const STATUS_VI: Record<string, string> = {
@@ -26,9 +26,18 @@ function toVN(value: string | null): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const internshipId = request.nextUrl.searchParams.get("internship_id");
-    const supabase = createAdminClient();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return Response.json({ error: "Bạn chưa đăng nhập." }, { status: 401 });
+    }
 
+    const { data: role } = await supabase.rpc("get_my_role");
+    if (role !== "admin" && role !== "hr") {
+      return Response.json({ error: "Bạn không có quyền xuất dữ liệu." }, { status: 403 });
+    }
+
+    const internshipId = request.nextUrl.searchParams.get("internship_id");
     let query = supabase
       .from("attendance")
       .select(

@@ -3,6 +3,7 @@ import {
   Award,
   CalendarRange,
   CheckCircle2,
+  ClipboardCheck,
   ClipboardList,
   Clock,
   FileText,
@@ -23,23 +24,43 @@ import {
 } from "@/components/ui/card";
 import { StatusBadge } from "@/components/status-badge";
 
+import { cn } from "cn";
+
 function StatCard({
   label,
   value,
   icon: Icon,
+  tone = "emerald",
 }: {
   label: string;
   value: number | string;
   icon: LucideIcon;
+  tone?: "emerald" | "orange";
 }) {
+  const isEmerald = tone === "emerald";
   return (
-    <Card>
-      <CardContent className="flex items-center justify-between p-4">
+    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border border-border/80 bg-card">
+      <div
+        className={cn(
+          "absolute top-0 left-0 right-0 h-1 transition-all",
+          isEmerald ? "bg-emerald-600 group-hover:h-1.5" : "bg-orange-500 group-hover:h-1.5",
+        )}
+      />
+      <CardContent className="flex items-center justify-between p-4 pt-5">
         <div className="space-y-1">
-          <p className="text-sm text-muted-foreground">{label}</p>
-          <p className="text-2xl font-semibold">{value}</p>
+          <p className="text-xs font-semibold text-muted-foreground tracking-wide">{label}</p>
+          <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
         </div>
-        <Icon className="size-8 text-muted-foreground" />
+        <div
+          className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 group-hover:scale-105",
+            isEmerald
+              ? "bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-400"
+              : "bg-orange-500/12 text-orange-700 ring-1 ring-orange-500/20 dark:bg-orange-950/50 dark:text-orange-400",
+          )}
+        >
+          <Icon className="size-5.5" />
+        </div>
       </CardContent>
     </Card>
   );
@@ -58,8 +79,8 @@ function RecentList({
   return (
     <ul className="flex flex-col gap-2">
       {items.map((item) => (
-        <li key={item.id} className="flex items-center justify-between gap-2">
-          <span className="min-w-0 truncate text-sm">{item.title}</span>
+        <li key={item.id} className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/40 transition-colors">
+          <span className="min-w-0 truncate text-sm font-medium">{item.title}</span>
           <span className="flex shrink-0 items-center gap-2">
             {item.status ? <StatusBadge value={item.status} /> : null}
           </span>
@@ -75,8 +96,12 @@ export default async function DashboardPage() {
   const role = session.profile?.role_code ?? "intern";
 
   if (role === "admin" || role === "hr") {
-    const { data } = await supabase.rpc("get_dashboard_stats");
+    const [{ data }, { data: onboardingData }] = await Promise.all([
+      supabase.rpc("get_dashboard_stats"),
+      supabase.rpc("get_onboarding_dashboard_stats"),
+    ]);
     const stats = (data ?? {}) as Record<string, unknown>;
+    const onboardingStats = (onboardingData ?? {}) as Record<string, number>;
     const tasksByStatus =
       (stats.tasks_by_status as Record<string, number> | null) ?? {};
     const batchesByStatus =
@@ -86,17 +111,19 @@ export default async function DashboardPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Dashboard"
-          description="Tổng quan hoạt động thực tập"
+          description="Tổng quan hoạt động thực tập Đại học Đà Lạt"
         />
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Thực tập sinh" value={String(stats.total_interns ?? 0)} icon={Users} />
-          <StatCard label="Mentor" value={String(stats.total_mentors ?? 0)} icon={UsersRound} />
-          <StatCard label="Đợt thực tập" value={String(stats.total_batches ?? 0)} icon={CalendarRange} />
-          <StatCard label="Đang thực tập" value={String(stats.interns_active ?? 0)} icon={CheckCircle2} />
-          <StatCard label="Đã hoàn thành" value={String(stats.interns_completed ?? 0)} icon={Award} />
-          <StatCard label="Chuyển NV chính thức" value={String(stats.converted ?? 0)} icon={UsersRound} />
-          <StatCard label="Chuyên cần" value={`${stats.attendance_rate ?? 0}%`} icon={Clock} />
-          <StatCard label="Hoàn thành task" value={`${stats.task_completion_rate ?? 0}%`} icon={ClipboardList} />
+          <StatCard label="Thực tập sinh" value={String(stats.total_interns ?? 0)} icon={Users} tone="emerald" />
+          <StatCard label="Mentor" value={String(stats.total_mentors ?? 0)} icon={UsersRound} tone="emerald" />
+          <StatCard label="Đợt thực tập" value={String(stats.total_batches ?? 0)} icon={CalendarRange} tone="orange" />
+          <StatCard label="Đang thực tập" value={String(stats.interns_active ?? 0)} icon={CheckCircle2} tone="emerald" />
+          <StatCard label="Đã hoàn thành" value={String(stats.interns_completed ?? 0)} icon={Award} tone="emerald" />
+          <StatCard label="Chuyển NV chính thức" value={String(stats.converted ?? 0)} icon={UsersRound} tone="orange" />
+          <StatCard label="Chuyên cần" value={`${stats.attendance_rate ?? 0}%`} icon={Clock} tone="orange" />
+          <StatCard label="Hoàn thành task" value={`${stats.task_completion_rate ?? 0}%`} icon={ClipboardList} tone="emerald" />
+          <StatCard label="Onboarding hoàn tất" value={String(onboardingStats.completed ?? 0)} icon={ClipboardCheck} tone="emerald" />
+          <StatCard label="Onboarding quá hạn" value={String(onboardingStats.overdue ?? 0)} icon={Clock} tone="orange" />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -136,8 +163,12 @@ export default async function DashboardPage() {
   }
 
   if (role === "mentor") {
-    const { data } = await supabase.rpc("get_mentor_stats");
+    const [{ data }, { data: onboardingData }] = await Promise.all([
+      supabase.rpc("get_mentor_stats"),
+      supabase.rpc("get_onboarding_dashboard_stats"),
+    ]);
     const stats = (data ?? {}) as Record<string, number>;
+    const onboardingStats = (onboardingData ?? {}) as Record<string, number>;
 
     return (
       <div className="flex flex-col gap-6">
@@ -146,10 +177,12 @@ export default async function DashboardPage() {
           description="Tổng quan intern bạn đang phụ trách"
         />
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Intern phụ trách" value={String(stats.interns ?? 0)} icon={Users} />
-          <StatCard label="Báo cáo chờ duyệt" value={String(stats.pending_reports ?? 0)} icon={FileText} />
-          <StatCard label="Đơn chờ duyệt" value={String(stats.pending_requests ?? 0)} icon={Inbox} />
-          <StatCard label="Task đang mở" value={String(stats.open_tasks ?? 0)} icon={ClipboardList} />
+          <StatCard label="Intern phụ trách" value={String(stats.interns ?? 0)} icon={Users} tone="emerald" />
+          <StatCard label="Báo cáo chờ duyệt" value={String(stats.pending_reports ?? 0)} icon={FileText} tone="orange" />
+          <StatCard label="Đơn chờ duyệt" value={String(stats.pending_requests ?? 0)} icon={Inbox} tone="orange" />
+          <StatCard label="Task đang mở" value={String(stats.open_tasks ?? 0)} icon={ClipboardList} tone="emerald" />
+          <StatCard label="Onboarding đang thực hiện" value={String(onboardingStats.in_progress ?? 0)} icon={ClipboardCheck} tone="orange" />
+          <StatCard label="Onboarding chờ duyệt" value={String(onboardingStats.pending_review ?? 0)} icon={ClipboardCheck} tone="orange" />
         </div>
       </div>
     );
@@ -199,10 +232,10 @@ export default async function DashboardPage() {
         description="Tình hình thực tập của bạn"
       />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Task được giao" value={taskCount ?? 0} icon={ClipboardList} />
-        <StatCard label="Ngày điểm danh" value={attendanceCount ?? 0} icon={Clock} />
-        <StatCard label="Báo cáo đã nộp" value={pendingReports ?? 0} icon={FileText} />
-        <StatCard label="Trạng thái" value={internships?.[0]?.status ?? "—"} icon={CheckCircle2} />
+        <StatCard label="Task được giao" value={taskCount ?? 0} icon={ClipboardList} tone="emerald" />
+        <StatCard label="Ngày điểm danh" value={attendanceCount ?? 0} icon={Clock} tone="emerald" />
+        <StatCard label="Báo cáo đã nộp" value={pendingReports ?? 0} icon={FileText} tone="orange" />
+        <StatCard label="Trạng thái" value={internships?.[0]?.status ?? "—"} icon={CheckCircle2} tone="emerald" />
       </div>
       <Card>
         <CardHeader>
@@ -210,6 +243,12 @@ export default async function DashboardPage() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           <ul className="list-inside list-disc space-y-1">
+            <li>
+              <Link href="/intern/onboarding" className="text-primary hover:underline">
+                Onboarding
+              </Link>
+              : theo dõi checklist, tài liệu và hạn hoàn thành.
+            </li>
             <li>
               <Link href="/tasks" className="text-primary hover:underline">
                 Công việc

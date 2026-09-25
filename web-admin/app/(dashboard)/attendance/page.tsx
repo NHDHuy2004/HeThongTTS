@@ -4,14 +4,7 @@ import { Download } from "lucide-react";
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
-import { DataTable, type Column } from "@/components/data-table";
-import { StatusBadge } from "@/components/status-badge";
-import { formatDate, formatDateTime } from "@/features/labels";
-import type { AttendanceRow } from "@/types/database";
-
-type AttendanceRowView = AttendanceRow & {
-  interns: { full_name: string } | null;
-};
+import { AttendanceTable, type AttendanceRowView } from "./attendance-table";
 
 export default async function AttendancePage() {
   const session = await requireAuth();
@@ -48,23 +41,6 @@ export default async function AttendancePage() {
     redirect("/dashboard");
   }
 
-  const columns: Column<AttendanceRowView>[] = [
-    { key: "work_date", header: "Ngày", cell: (r) => formatDate(r.work_date) },
-    {
-      key: "intern_id",
-      header: "Intern",
-      cell: (r) => r.interns?.full_name ?? "—",
-    },
-    { key: "check_in_at", header: "Check-in", cell: (r) => formatDateTime(r.check_in_at) },
-    { key: "check_out_at", header: "Check-out", cell: (r) => formatDateTime(r.check_out_at) },
-    {
-      key: "status",
-      header: "Trạng thái",
-      cell: (r) => <StatusBadge value={r.status} />,
-    },
-    { key: "note", header: "Ghi chú", cell: (r) => r.note ?? "—" },
-  ];
-
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -86,12 +62,7 @@ export default async function AttendancePage() {
           ) : undefined
         }
       />
-      <DataTable
-        data={rows}
-        columns={columns}
-        searchKeys={["interns.full_name", "note"]}
-        searchPlaceholder="Tìm theo tên intern, ghi chú..."
-      />
+      <AttendanceTable data={rows} />
     </div>
   );
 }

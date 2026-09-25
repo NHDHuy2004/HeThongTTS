@@ -57,10 +57,22 @@ export const navItems: NavItem[] = [
     roles: ["admin", "hr"],
   },
   {
-    href: "/onboarding",
+    href: "/admin/onboarding",
     label: "Onboarding",
     icon: ClipboardCheck,
-    roles: ["admin", "hr", "intern"],
+    roles: ["admin", "hr"],
+  },
+  {
+    href: "/mentor/onboarding",
+    label: "Onboarding",
+    icon: ClipboardCheck,
+    roles: ["mentor"],
+  },
+  {
+    href: "/intern/onboarding",
+    label: "Onboarding",
+    icon: ClipboardCheck,
+    roles: ["intern"],
   },
   {
     href: "/tasks",

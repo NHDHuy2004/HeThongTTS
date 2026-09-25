@@ -31,11 +31,12 @@ export default async function DashboardLayout({
             role,
           }}
         />
-        <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6">
+        <main className="mx-auto w-full max-w-6xl flex-1 p-4 sm:p-6 space-y-6">
           {children}
         </main>
-        <footer className="border-t px-6 py-3 text-center text-xs text-muted-foreground">
-          IMS · Hệ thống Quản lý Thực tập
+        <footer className="border-t border-border/60 bg-card px-6 py-3.5 text-center text-xs text-muted-foreground flex flex-col sm:flex-row items-center justify-between gap-2">
+          <span>© Đại học Đà Lạt · Hệ thống Quản lý Thực tập sinh (IMS)</span>
+          <span className="text-[11px] text-emerald-700/80 dark:text-emerald-400 font-medium">Khoa Công nghệ Thông tin</span>
         </footer>
       </div>
     </div>
