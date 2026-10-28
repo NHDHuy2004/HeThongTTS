@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import { InternForm } from "./intern-form";
 import { ImportCsvForm } from "./import-csv";
 import { InternsTable, type InternRow } from "./interns-table";
@@ -60,6 +62,9 @@ export default async function InternsPage() {
         actions={
           isManager ? (
             <div className="flex items-center gap-2">
+              <Link href="/interns/import-jobs">
+                <Button variant="ghost">Lịch sử import</Button>
+              </Link>
               <ImportCsvForm
                 batches={batches ?? []}
                 departments={departments ?? []}

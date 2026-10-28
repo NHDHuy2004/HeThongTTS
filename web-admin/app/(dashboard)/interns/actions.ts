@@ -227,13 +227,17 @@ export type CsvInternRow = {
 export type ImportCsvState = {
   error?: string;
   imported?: number;
-  failed?: { index: number; reason: string }[];
+  failed?: { index: number; reason: string; code?: string }[];
+  jobId?: string;
 };
 
-/** Import hàng loạt intern từ CSV. Role: admin/hr. */
+const MAX_ROWS = 5000;
+
+/** Import hàng loạt intern từ CSV/Excel. Role: admin/hr. */
 export async function importInternsCsv(
   rows: CsvInternRow[],
   assignment: { batch_id: string | null; department_id: string | null; mentor_id: string | null },
+  options?: { import_mode?: "partial" | "strict"; file_name?: string },
 ): Promise<ImportCsvState> {
   const supabase = await createClient();
 
@@ -248,27 +252,102 @@ export async function importInternsCsv(
   }
 
   if (!rows.length) return { error: "File không có dữ liệu hợp lệ." };
+  if (rows.length > MAX_ROWS) {
+    return { error: `File chứa quá nhiều dòng. Giới hạn hiện tại: ${MAX_ROWS} sinh viên.` };
+  }
+  if (!assignment.batch_id) {
+    return { error: "Vui lòng chọn đợt thực tập trước khi import." };
+  }
 
-  const failed: ImportCsvState["failed"] = [];
-  let imported = 0;
+  const mode = options?.import_mode === "strict" ? "strict" : "partial";
+
+  // Validate toàn bộ trước
+  const failed: NonNullable<ImportCsvState["failed"]> = [];
+  const validRows: { index: number; row: CsvInternRow }[] = [];
+  const seenMssv = new Map<string, number>();
 
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
-    if (!r.student_code || !r.full_name || !r.email) {
-      failed.push({ index: i + 1, reason: "Thiếu mã SV / họ tên / email." });
-      continue;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email)) {
-      failed.push({ index: i + 1, reason: "Email không hợp lệ." });
-      continue;
-    }
+    const errors: string[] = [];
+    if (!r.student_code?.trim()) errors.push("MSSV không được để trống.");
+    if (!r.full_name?.trim()) errors.push("Thiếu họ tên.");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email ?? "")) errors.push("Email không hợp lệ.");
+    if (r.phone && !/^[0-9+\-\s()]{8,}$/.test(r.phone)) errors.push("Số điện thoại không hợp lệ.");
 
+    const mssv = (r.student_code ?? "").trim();
+    if (mssv) {
+      if (seenMssv.has(mssv.toLowerCase())) {
+        errors.push(`MSSV ${mssv} bị trùng với dòng ${seenMssv.get(mssv.toLowerCase())}.`);
+      } else {
+        seenMssv.set(mssv.toLowerCase(), i + 1);
+      }
+    }
+    if (errors.length) failed.push({ index: i + 1, reason: errors.join(" "), code: "VALIDATION" });
+    else validRows.push({ index: i + 1, row: r });
+  }
+
+  // Kiểm tra MSSV trùng với DB trong cùng batch
+  const { data: existing } = await supabase
+    .from("internships")
+    .select("interns(student_code)")
+    .eq("batch_id", assignment.batch_id);
+  const existingSet = new Set(
+    (existing ?? [])
+      .map((x) => (x.interns as unknown as { student_code: string } | null)?.student_code?.trim().toLowerCase())
+      .filter(Boolean),
+  );
+  const finalValid: { index: number; row: CsvInternRow }[] = [];
+  let duplicateRows = 0;
+  for (const v of validRows) {
+    if (existingSet.has(v.row.student_code.trim().toLowerCase())) {
+      duplicateRows += 1;
+      failed.push({
+        index: v.index,
+        reason: `MSSV ${v.row.student_code} đã tồn tại trong đợt thực tập này.`,
+        code: "DUPLICATE_MSSV",
+      });
+    } else {
+      finalValid.push(v);
+    }
+  }
+
+  if (mode === "strict" && failed.length > 0) {
+    return {
+      error: `Chế độ Strict Import: có ${failed.length} dòng lỗi, không import dòng nào.`,
+      failed,
+      imported: 0,
+    };
+  }
+
+  // Tạo import job
+  const { data: job } = await supabase
+    .from("import_jobs")
+    .insert({
+      import_type: "interns",
+      file_name: options?.file_name ?? null,
+      target_batch_id: assignment.batch_id,
+      total_rows: rows.length,
+      valid_rows: finalValid.length,
+      duplicate_rows: duplicateRows,
+      failed_rows: failed.length,
+      import_mode: mode,
+      status: "importing",
+      created_by: user.id,
+    })
+    .select("id")
+    .single();
+
+  const jobId = job?.id as string | undefined;
+  let imported = 0;
+
+  for (const v of finalValid) {
+    const r = v.row;
     const { data: intern, error } = await supabase
       .from("interns")
       .insert({
-        student_code: r.student_code,
-        full_name: r.full_name,
-        email: r.email,
+        student_code: r.student_code.trim(),
+        full_name: r.full_name.trim(),
+        email: r.email.trim(),
         phone: r.phone || null,
         school: r.school || null,
         major: r.major || null,
@@ -284,24 +363,57 @@ export async function importInternsCsv(
       .single();
 
     if (error) {
-      failed.push({ index: i + 1, reason: error.message });
+      failed.push({ index: v.index, reason: error.message, code: "INSERT" });
       continue;
     }
 
-    if (assignment.batch_id) {
-      const { error: ipErr } = await supabase.from("internships").insert({
-        intern_id: intern.id,
-        batch_id: assignment.batch_id,
-        department_id: assignment.department_id,
-        mentor_id: assignment.mentor_id,
-        status: "upcoming",
-        created_by: user.id,
-      });
-      if (ipErr) failed.push({ index: i + 1, reason: `Thêm vào đợt thất bại: ${ipErr.message}` });
+    const { error: ipErr } = await supabase.from("internships").insert({
+      intern_id: intern.id,
+      batch_id: assignment.batch_id,
+      department_id: assignment.department_id,
+      mentor_id: assignment.mentor_id,
+      status: "upcoming",
+      created_by: user.id,
+    });
+    if (ipErr) {
+      failed.push({ index: v.index, reason: `Thêm vào đợt thất bại: ${ipErr.message}`, code: "INTERNSHIP" });
+      continue;
     }
 
+    if (jobId) {
+      await supabase.from("import_job_items").insert({
+        import_job_id: jobId,
+        row_number: v.index,
+        raw_data: r as unknown as import("@/types/database").Json,
+        normalized_data: r as unknown as import("@/types/database").Json,
+        status: "imported",
+        created_record_id: intern.id,
+      });
+    }
     imported += 1;
   }
 
-  return { imported, failed, ...(imported === 0 && !failed.length && rows.length ? { error: "Không import được dòng nào." } : {}) };
+  if (jobId) {
+    await supabase
+      .from("import_jobs")
+      .update({
+        success_rows: imported,
+        failed_rows: failed.length,
+        duplicate_rows: duplicateRows,
+        status: failed.length > 0 ? "partial" : "completed",
+        completed_at: new Date().toISOString(),
+      })
+      .eq("id", jobId);
+
+    const itemRows = failed.map((f) => ({
+      import_job_id: jobId,
+      row_number: f.index,
+      status: f.code === "DUPLICATE_MSSV" ? "duplicate" : "invalid",
+      error_code: f.code,
+      error_message: f.reason,
+    }));
+    if (itemRows.length) await supabase.from("import_job_items").insert(itemRows);
+  }
+
+  return { imported, failed, jobId, ...(imported === 0 && !failed.length && rows.length ? { error: "Không import được dòng nào." } : {}) };
 }

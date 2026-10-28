@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
-import { EvalForm } from "./eval-form";
 import { EvaluationsTable, type EvalRow } from "./evaluations-table";
+import { Button } from "@/components/ui/button";
 
 export default async function EvaluationsPage() {
   const session = await requireAuth();
@@ -15,24 +16,16 @@ export default async function EvaluationsPage() {
 
   let rows: EvalRow[] = [];
   let canManage = false;
-  let internships: { id: string; name: string }[] = [];
 
   if (role === "admin" || role === "hr") {
-    const [{ data }, { data: ipList }] = await Promise.all([
+    const [{ data }] = await Promise.all([
       supabase
         .from("evaluations")
         .select("*, internships(interns(full_name))")
         .order("created_at", { ascending: false })
         .limit(200),
-      supabase
-        .from("internships")
-        .select("id, interns(full_name)")
-        .is("deleted_at", null),
     ]);
     rows = (data ?? []) as EvalRow[];
-    internships = ((ipList ?? []) as { id: string; interns: { full_name: string } | null }[]).map(
-      (ip) => ({ id: ip.id, name: ip.interns?.full_name ?? "—" }),
-    );
     canManage = true;
   } else if (role === "mentor") {
     const { data: mentor } = await supabase
@@ -55,9 +48,6 @@ export default async function EvaluationsPage() {
         .order("created_at", { ascending: false })
         .limit(200);
       rows = (data ?? []) as EvalRow[];
-      internships = ((ipList ?? []) as { id: string; interns: { full_name: string } | null }[]).map(
-        (ip) => ({ id: ip.id, name: ip.interns?.full_name ?? "—" }),
-      );
       canManage = true;
     }
   } else if (role === "intern") {
@@ -92,7 +82,13 @@ export default async function EvaluationsPage() {
       <PageHeader
         title="Đánh giá"
         description="Phiếu đánh giá định kỳ cho thực tập sinh"
-        actions={canManage ? <EvalForm internships={internships} /> : undefined}
+        actions={
+          canManage ? (
+            <Link href="/evaluations/new">
+              <Button>Tạo đánh giá</Button>
+            </Link>
+          ) : undefined
+        }
       />
       <EvaluationsTable data={rows} />
     </div>

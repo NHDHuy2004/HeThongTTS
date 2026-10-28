@@ -227,12 +227,12 @@ insert into public.task_assignees (task_id, intern_id, role, assigned_by) values
   ('80000000-0000-0000-0000-000000000001', '60000000-0000-0000-0000-000000000003', 'assignee', '40000000-0000-0000-0000-000000000003')
 on conflict (task_id, intern_id) do nothing;
 
--- Subtasks (mỗi người một phần)
-insert into public.task_subtasks (id, task_id, title, description, assignee_id, start_date, due_date, priority, status, deliverable) values
-  ('82000000-0000-0000-0000-000000000001', '80000000-0000-0000-0000-000000000001', 'Database', 'Thiết kế bảng intern + internship, index và migration', '60000000-0000-0000-0000-000000000001', now(), now() + interval '7 days', 'high', 'in_review', 'Database script'),
-  ('82000000-0000-0000-0000-000000000002', '80000000-0000-0000-0000-000000000001', 'API', 'Xây dựng REST API + phân quyền', '60000000-0000-0000-0000-000000000002', now(), now() + interval '9 days', 'high', 'in_progress', 'Source code + Swagger'),
-  ('82000000-0000-0000-0000-000000000003', '80000000-0000-0000-0000-000000000001', 'UI', 'Xây dựng màn hình danh sách/chi tiết intern', '60000000-0000-0000-0000-000000000003', now(), now() + interval '11 days', 'medium', 'not_started', 'Screenshot + Demo link'),
-  ('82000000-0000-0000-0000-000000000004', '80000000-0000-0000-0000-000000000001', 'Testing', 'Viết unit test và kiểm thử end-to-end', '60000000-0000-0000-0000-000000000001', now(), now() + interval '14 days', 'medium', 'not_started', 'Test report')
+-- Subtasks (mỗi người một phần) — có weight + progress để Task cha tự tính tiến độ
+insert into public.task_subtasks (id, task_id, title, description, assignee_id, start_date, due_date, priority, status, deliverable, weight, progress) values
+  ('82000000-0000-0000-0000-000000000001', '80000000-0000-0000-0000-000000000001', 'Database', 'Thiết kế bảng intern + internship, index và migration', '60000000-0000-0000-0000-000000000001', now(), now() + interval '7 days', 'high', 'in_review', 'Database script', 30, 100),
+  ('82000000-0000-0000-0000-000000000002', '80000000-0000-0000-0000-000000000001', 'API', 'Xây dựng REST API + phân quyền', '60000000-0000-0000-0000-000000000002', now(), now() + interval '9 days', 'high', 'in_progress', 'Source code + Swagger', 30, 70),
+  ('82000000-0000-0000-0000-000000000003', '80000000-0000-0000-0000-000000000001', 'UI', 'Xây dựng màn hình danh sách/chi tiết intern', '60000000-0000-0000-0000-000000000003', now(), now() + interval '11 days', 'medium', 'not_started', 'Screenshot + Demo link', 20, 0),
+  ('82000000-0000-0000-0000-000000000004', '80000000-0000-0000-0000-000000000001', 'Testing', 'Viết unit test và kiểm thử end-to-end', '60000000-0000-0000-0000-000000000001', now(), now() + interval '14 days', 'medium', 'not_started', 'Test report', 20, 0)
 on conflict (id) do nothing;
 
 -- Lịch sử nộp (subtask Database — intern1) + link đính kèm

@@ -184,6 +184,56 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     }
   }
 
+  Future<void> _editSubtaskProgress(Map<String, dynamic> st) async {
+    final controller = TextEditingController(
+        text: '${st['progress'] ?? 0}');
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cập nhật tiến độ'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(hintText: '0-100'),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Hủy')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Lưu')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final v = int.tryParse(controller.text);
+    if (v == null || v < 0 || v > 100) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Tiến độ phải từ 0 đến 100')));
+      }
+      return;
+    }
+    try {
+      final supabase = SupabaseService.instance;
+      final patch = <String, dynamic>{'progress': v};
+      if (v > 0 && st['status'] == 'not_started') {
+        patch['status'] = 'in_progress';
+      }
+      await supabase
+          .from('task_subtasks')
+          .update(patch)
+          .eq('id', st['id'] as String);
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$e')));
+      }
+    }
+  }
+
   Future<void> _setSubtaskStatus(String id, String status) async {
     try {
       final supabase = SupabaseService.instance;
@@ -652,8 +702,29 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                           Text(st['description'] as String),
                         if (st['due_date'] != null)
                           Text('Hạn: ${fmtDateTime(st['due_date'] as String?)}'),
+                        if (st['weight'] != null && (st['weight'] as num) > 0)
+                          Text('Trọng số: ${st['weight']}'),
+                        if (st['progress'] != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: LinearProgressIndicator(
+                                  value: ((st['progress'] as num).clamp(0, 100) / 100).toDouble(),
+                                  minHeight: 4,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text('${st['progress']}%',
+                                  style: const TextStyle(fontSize: 12)),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
+                    onTap: (!isStaff && st['assignee_id'] != null && st['status'] != 'completed' && st['status'] != 'cancelled')
+                        ? () => _editSubtaskProgress(st)
+                        : null,
                     trailing: isStaff
                         ? DropdownButton<String>(
                             value: st['status'] as String?,

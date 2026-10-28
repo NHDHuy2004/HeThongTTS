@@ -16,6 +16,7 @@ import { TaskStatusControl } from "../task-status";
 import { SubtasksPanel } from "./subtasks";
 import { SubmissionsPanel } from "./submissions";
 import { ReviewsPanel } from "./reviews";
+import { AttachmentsPanel } from "./attachments";
 
 export default async function TaskDetailPage({
   params,
@@ -85,12 +86,49 @@ export default async function TaskDetailPage({
         ?.signedUrl ?? null,
     ),
   );
-  const urlOf = (idx: number) => signed[idx] ?? null;
-
   const canReview = role === "admin" || role === "hr" || role === "mentor";
   const canManage = canReview;
 
   const assignees = task.task_assignees ?? [];
+
+  // Intern hiện tại (để lọc phần việc của họ)
+  let myInternId: string | null = null;
+  if (role === "intern") {
+    const { data: me } = await supabase
+      .from("interns")
+      .select("id")
+      .eq("user_id", session.profile?.id ?? "")
+      .maybeSingle();
+    myInternId = me?.id ?? null;
+  }
+
+  // Thống kê theo từng intern trên chính task này
+  const perIntern = new Map<
+    string,
+    { name: string; total: number; completed: number; inProgress: number; overdue: number; changes: number }
+  >();
+  for (const s of subtasks) {
+    if (!s.assignee_id) continue;
+    const name =
+      assignees.find((a) => a.intern_id === s.assignee_id)?.interns?.full_name ?? "—";
+    const cur = perIntern.get(s.assignee_id) ?? {
+      name, total: 0, completed: 0, inProgress: 0, overdue: 0, changes: 0,
+    };
+    cur.total += 1;
+    if (s.status === "completed") cur.completed += 1;
+    if (s.status === "in_progress") cur.inProgress += 1;
+    if (s.status === "changes_requested") cur.changes += 1;
+    if (
+      s.due_date &&
+      s.status !== "completed" &&
+      s.status !== "cancelled" &&
+      // eslint-disable-next-line react-hooks/purity
+      new Date(s.due_date).getTime() < Date.now()
+    ) {
+      cur.overdue += 1;
+    }
+    perIntern.set(s.assignee_id, cur);
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -115,6 +153,37 @@ export default async function TaskDetailPage({
           </CardContent>
         </Card>
       ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Tiến độ tổng thể</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="h-3 flex-1 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${Math.min(100, Math.max(0, Number(task.progress ?? 0)))}%` }}
+              />
+            </div>
+            <span className="w-12 text-right text-sm font-semibold">{Number(task.progress ?? 0)}%</span>
+          </div>
+          {canManage && perIntern.size > 0 ? (
+            <div className="mt-2 flex flex-col gap-1 text-sm">
+              {Array.from(perIntern.values()).map((p) => (
+                <div key={p.name} className="flex flex-wrap gap-x-3 text-xs text-muted-foreground">
+                  <span className="w-36 font-medium text-foreground">{p.name}</span>
+                  <span>{p.total} task</span>
+                  <span className="text-emerald-600">{p.completed} xong</span>
+                  <span className="text-blue-600">{p.inProgress} đang làm</span>
+                  {p.changes > 0 ? <span className="text-amber-600">{p.changes} cần sửa</span> : null}
+                  {p.overdue > 0 ? <span className="text-red-600">{p.overdue} quá hạn</span> : null}
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-3">
@@ -188,27 +257,10 @@ export default async function TaskDetailPage({
           {attachments.length ? (
             <Card>
               <CardHeader>
-                <CardTitle>File giao việc</CardTitle>
+                <CardTitle>📚 File giao việc</CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                {attachments.map((a, idx) => {
-                  const url = urlOf(idx);
-                  return url ? (
-                    <a
-                      key={a.id}
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-sm text-primary underline-offset-4 hover:underline"
-                    >
-                      📎 {a.file_name}
-                    </a>
-                  ) : (
-                    <span key={a.id} className="text-sm">
-                      📎 {a.file_name}
-                    </span>
-                  );
-                })}
+              <CardContent>
+                <AttachmentsPanel attachments={attachments} signedUrls={signed} canManage={canManage} />
               </CardContent>
             </Card>
           ) : null}
@@ -223,6 +275,7 @@ export default async function TaskDetailPage({
         assignees={assignees}
         canManage={canManage}
         isIntern={role === "intern"}
+        myInternId={myInternId}
       />
 
       <SubmissionsPanel

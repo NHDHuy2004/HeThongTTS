@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { FileUp, Upload } from "lucide-react";
 
@@ -56,45 +55,6 @@ const HEADER_ALIASES: Record<string, keyof CsvInternRow> = {
   "địa chỉ thường trú": "address",
 };
 
-function parseCsv(text: string): string[][] {
-  const lines: string[][] = [];
-  let current: string[] = [];
-  let field = "";
-  let inQuotes = false;
-
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        field += ch;
-      }
-    } else if (ch === '"') {
-      inQuotes = true;
-    } else if (ch === ",") {
-      current.push(field);
-      field = "";
-    } else if (ch === "\n" || ch === "\r") {
-      if (ch === "\r" && text[i + 1] === "\n") i++;
-      current.push(field);
-      field = "";
-      if (current.some((c) => c.trim() !== "")) lines.push(current);
-      current = [];
-    } else {
-      field += ch;
-    }
-  }
-  current.push(field);
-  if (current.some((c) => c.trim() !== "")) lines.push(current);
-  return lines;
-}
-
 function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, "_");
 }
@@ -115,17 +75,49 @@ export function ImportCsvForm({
   const [departmentId, setDepartmentId] = React.useState("");
   const [mentorId, setMentorId] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-  const router = useRouter();
+  const [strict, setStrict] = React.useState(false);
+  const [result, setResult] = React.useState<Awaited<ReturnType<typeof importInternsCsv>> | null>(null);
 
   function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+    const isCsv = /\.(csv|txt)$/i.test(file.name);
+    if (!isExcel && !isCsv) {
+      toast.error("Chỉ hỗ trợ .xlsx, .xls, .csv");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File vượt quá 10MB.");
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result ?? "");
-      const parsed = parseCsv(text);
+    reader.onload = async () => {
+      let parsed: string[][] = [];
+      try {
+        if (isExcel) {
+          const XLSX = await import("xlsx");
+          const wb = XLSX.read(reader.result, { type: "array", cellDates: true });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json<(string | number | Date)[]>(ws, { header: 1, raw: false, dateNF: "yyyy-mm-dd" });
+          parsed = json.map((row) => row.map((c) => (c instanceof Date ? c.toISOString().slice(0, 10) : String(c ?? ""))));
+        } else {
+          const XLSX = await import("xlsx");
+          const text = new TextDecoder("utf-8").decode(reader.result as ArrayBuffer);
+          const wb = XLSX.read(text, { type: "string" });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json<(string | number | Date)[]>(ws, { header: 1, raw: false, dateNF: "yyyy-mm-dd" });
+          parsed = json.map((row) => row.map((c) => String(c ?? "")));
+        }
+      } catch {
+        toast.error("Không đọc được file. File có thể bị hỏng hoặc sai định dạng.");
+        return;
+      }
+      parsed = parsed.filter((r) => r.some((c) => c.trim() !== ""));
       if (parsed.length < 2) {
-        toast.error("File CSV trống hoặc chỉ có dòng tiêu đề.");
+        toast.error("File trống hoặc chỉ có dòng tiêu đề.");
         setRows([]);
         return;
       }
@@ -159,36 +151,54 @@ export function ImportCsvForm({
           const key = mapping[header[i]];
           if (key) row[key] = line[i].trim();
         }
+        // Chuẩn hóa giới tính
+        const g = row.gender.toLowerCase();
+        if (["nam", "male", "m"].includes(g)) row.gender = "male";
+        else if (["nữ", "nu", "female", "f"].includes(g)) row.gender = "female";
+        else if (["khác", "khac", "other"].includes(g)) row.gender = "other";
+        // Chuẩn hóa ngày sinh DD/MM/YYYY → YYYY-MM-DD
+        const m = row.birth_date.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+        if (m) row.birth_date = `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
         return row;
       });
       setRows(mapped);
       setFileName(file.name);
       toast.success(`Đọc được ${mapped.length} dòng từ file.`);
     };
-    reader.readAsText(file, "utf-8");
+    reader.readAsArrayBuffer(file);
   }
 
   async function handleImport() {
-    if (!rows.length) return;
-    setBusy(true);
-    const result = await importInternsCsv(rows, {
-      batch_id: batchId || null,
-      department_id: departmentId || null,
-      mentor_id: mentorId || null,
-    });
-    setBusy(false);
-
-    if (result.error) toast.error(result.error);
-    if (result.imported) toast.success(`Đã import ${result.imported} thực tập sinh.`);
-    if (result.failed?.length) {
-      const sample = result.failed.slice(0, 5).map((f) => `Dòng ${f.index}: ${f.reason}`);
-      toast.error(`Có ${result.failed.length} dòng lỗi. ` + sample.join(" · "));
+    if (!rows.length || !batchId) {
+      toast.error("Vui lòng chọn đợt thực tập.");
+      return;
     }
+    setBusy(true);
+    const res = await importInternsCsv(
+      rows,
+      { batch_id: batchId, department_id: departmentId || null, mentor_id: mentorId || null },
+      { import_mode: strict ? "strict" : "partial", file_name: fileName },
+    );
+    setBusy(false);
+    setResult(res);
 
-    setOpen(false);
-    setRows([]);
-    setFileName("");
-    router.refresh();
+    if (res.error) toast.error(res.error);
+    if (res.imported) toast.success(`Đã import ${res.imported} thực tập sinh.`);
+  }
+
+  function downloadErrorReport() {
+    if (!result?.failed?.length) return;
+    const header = "row_number,mssv_or_name,error_code,error_message\n";
+    const body = result.failed
+      .map((f) => `${f.index},,"${f.code ?? ""}","${f.reason.replace(/"/g, '""')}"`)
+      .join("\n");
+    const blob = new Blob([header + body], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "import_errors.csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
@@ -207,11 +217,11 @@ export function ImportCsvForm({
           </SheetHeader>
           <div className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="csv">File CSV (.csv / UTF-8)</Label>
+              <Label htmlFor="csv">File (.xlsx / .xls / .csv)</Label>
               <Input
                 id="csv"
                 type="file"
-                accept=".csv,text/csv,text/plain"
+                accept=".csv,.xlsx,.xls,text/csv,text/plain"
                 onChange={handleFile}
               />
               {fileName ? (
@@ -298,8 +308,24 @@ export function ImportCsvForm({
               </div>
             </div>
 
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={strict} onChange={(e) => setStrict(e.target.checked)} />
+              Chế độ nghiêm ngặt: nếu có lỗi thì không import dòng nào
+            </label>
+
+            {result ? (
+              <div className="rounded-lg border p-3 text-sm">
+                <p>Tổng: {rows.length} · Thành công: {result.imported ?? 0} · Lỗi: {result.failed?.length ?? 0}</p>
+                {result.failed?.length ? (
+                  <Button size="sm" variant="outline" className="mt-2" onClick={downloadErrorReport}>
+                    Tải báo cáo lỗi
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
+
             <SheetFooter className="pt-2">
-              <Button onClick={handleImport} disabled={busy || !rows.length}>
+              <Button onClick={handleImport} disabled={busy || !rows.length || !batchId}>
                 <Upload className="size-4" />
                 {busy ? "Đang import..." : `Import ${rows.length} dòng`}
               </Button>

@@ -28,6 +28,10 @@ export type ReviewRow = {
   technical_score: number | null;
   documentation_score: number | null;
   soft_score: number | null;
+  testing_score: number | null;
+  problem_solving_score: number | null;
+  communication_score: number | null;
+  teamwork_score: number | null;
   deadline_bucket: string | null;
   feedback: string | null;
   strengths: string | null;
@@ -150,6 +154,10 @@ export function ReviewsPanel({
               <ScoreInput label="Kỹ thuật" name="technical_score" />
               <ScoreInput label="Tài liệu" name="documentation_score" />
               <ScoreInput label="Mềm dẻo" name="soft_score" />
+              <ScoreInput label="Kiểm thử" name="testing_score" />
+              <ScoreInput label="Giải quyết vấn đề" name="problem_solving_score" />
+              <ScoreInput label="Giao tiếp" name="communication_score" />
+              <ScoreInput label="Làm việc nhóm" name="teamwork_score" />
             </div>
             <div className="flex flex-col gap-1">
               <Label htmlFor="rv_feedback">Nhận xét tổng thể</Label>
@@ -231,6 +239,10 @@ export function ReviewsPanel({
                     {r.technical_score != null ? ` · Kỹ thuật ${r.technical_score}/5` : ""}
                     {r.documentation_score != null ? ` · Tài liệu ${r.documentation_score}/5` : ""}
                     {r.soft_score != null ? ` · Mềm dẻo ${r.soft_score}/5` : ""}
+                    {r.testing_score != null ? ` · Kiểm thử ${r.testing_score}/5` : ""}
+                    {r.problem_solving_score != null ? ` · Giải quyết VĐ ${r.problem_solving_score}/5` : ""}
+                    {r.communication_score != null ? ` · Giao tiếp ${r.communication_score}/5` : ""}
+                    {r.teamwork_score != null ? ` · Làm nhóm ${r.teamwork_score}/5` : ""}
                   </p>
                 ) : null}
                 {r.feedback ? <p className="text-sm">{r.feedback}</p> : null}

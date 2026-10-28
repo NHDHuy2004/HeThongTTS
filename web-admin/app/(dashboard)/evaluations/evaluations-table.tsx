@@ -23,7 +23,7 @@ export function EvaluationsTable({ data }: { data: EvalRow[] }) {
       header: "Loại",
       cell: (r) => evaluationTypeLabel[r.type] ?? r.type,
     },
-    { key: "period_label", header: "Kỳ", cell: (r) => r.period_label },
+    { key: "period_label", header: "Kỳ", cell: (r) => <a href={`/evaluations/${r.id}`} className="text-primary underline-offset-4 hover:underline">{r.period_label}</a> },
     { key: "due_date", header: "Hạn", cell: (r) => formatDate(r.due_date) },
     {
       key: "final_score",
@@ -33,7 +33,7 @@ export function EvaluationsTable({ data }: { data: EvalRow[] }) {
     {
       key: "submitted_at",
       header: "Trạng thái",
-      cell: (r) => (r.submitted_at ? "Đã nộp" : "Chưa nộp"),
+      cell: (r) => r.status === "finalized" ? "Hoàn tất" : r.status === "submitted" ? "Đã nộp" : r.status === "reviewed" ? "Đã review" : "Nháp",
     },
     {
       key: "actions",

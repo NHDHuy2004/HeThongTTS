@@ -128,19 +128,61 @@ export async function createTask(
   // File đính kèm (mentor/HR giao việc bằng file)
   const file = formData.get("attachment");
   if (file instanceof File && file.size > 0) {
-    const res = await uploadFileToStorage(task.id, "attachments", file);
+    const validation = validateTaskFile(file);
+    if (validation) return { error: validation };
+    const res = await uploadFileToStorage(task.id, classifyMime(file), file);
     if (!res.path) return { error: "Không upload được file đính kèm." };
     await supabase.from("task_attachments").insert({
       task_id: task.id,
-      uploaded_by: userId,
+      uploaded_by: userId!,
       file_path: res.path,
       file_name: file.name,
       mime_type: file.type || null,
       file_size: file.size,
+      file_type: fileKindOf(file),
     });
   }
 
   return {};
+}
+
+// ==========================================================================
+// File validation (đồng bộ whitelist với DB trigger)
+// ==========================================================================
+const ALLOWED_MIME = [
+  /^application\/pdf/,
+  /^application\/msword/,
+  /^application\/vnd\.openxmlformats-officedocument/,
+  /^application\/vnd\.ms-excel/,
+  /^application\/vnd\.ms-powerpoint/,
+  /^text\/plain/,
+  /^image\/(jpeg|png|webp)/,
+  /^video\/(mp4|quicktime|webm)/,
+];
+
+export function validateTaskFile(file: File): string | null {
+  if (!ALLOWED_MIME.some((re) => re.test(file.type))) {
+    return "Loại file không được hỗ trợ.";
+  }
+  const isVideo = file.type.startsWith("video/");
+  const max = isVideo ? 500 * 1024 * 1024 : 50 * 1024 * 1024;
+  if (file.size > max) {
+    return isVideo ? "Video tối đa 500MB." : "File tối đa 50MB.";
+  }
+  return null;
+}
+
+export function fileKindOf(file: File): "document" | "image" | "video" | "other" {
+  if (file.type.startsWith("image/")) return "image";
+  if (file.type.startsWith("video/")) return "video";
+  if (file.type.startsWith("text/") || file.type.includes("pdf") || file.type.includes("word") || file.type.includes("sheet") || file.type.includes("excel") || file.type.includes("powerpoint") || file.type.includes("presentation")) return "document";
+  return "other";
+}
+
+function classifyMime(file: File): string {
+  if (file.type.startsWith("image/")) return "images";
+  if (file.type.startsWith("video/")) return "videos";
+  return "documents";
 }
 
 // ==========================================================================
@@ -188,6 +230,7 @@ export async function createSubtask(
   const title = text(formData, "title");
   if (!title) return { error: "Vui lòng nhập tiêu đề sub-task." };
 
+  const parentSubtaskId = text(formData, "parent_subtask_id");
   const { error } = await supabase.from("task_subtasks").insert({
     task_id: taskId,
     title,
@@ -201,8 +244,107 @@ export async function createSubtask(
       | "high"
       | "urgent",
     deliverable: text(formData, "deliverable"),
+    objective: text(formData, "objective"),
+    requirements: text(formData, "requirements"),
+    acceptance_criteria: text(formData, "acceptance_criteria"),
+    deliverables: formData.getAll("deliverables").filter(Boolean) as string[],
+    estimated_hours: text(formData, "estimated_hours")
+      ? Number(formData.get("estimated_hours"))
+      : null,
+    weight: text(formData, "weight") ? Number(formData.get("weight")) : 0,
+    is_required: formData.get("is_required") !== "off",
+    parent_subtask_id: parentSubtaskId && parentSubtaskId !== "none" ? parentSubtaskId : null,
     created_by: await currentUserId(),
   });
+
+  return { error: error?.message ?? undefined };
+}
+
+export async function updateSubtask(
+  id: string,
+  prevState: TaskFormState,
+  formData: FormData,
+): Promise<TaskFormState> {
+  const role = await requireRole();
+  if (!isStaff(role)) return { error: "Bạn không có quyền chỉnh sửa sub-task." };
+  const supabase = await createClient();
+
+  const title = text(formData, "title");
+  if (!title) return { error: "Vui lòng nhập tiêu đề sub-task." };
+
+  const { error } = await supabase
+    .from("task_subtasks")
+    .update({
+      title,
+      description: text(formData, "description"),
+      assignee_id: text(formData, "assignee_id"),
+      start_date: text(formData, "start_date"),
+      due_date: text(formData, "due_date"),
+      priority: (text(formData, "priority") ?? "medium") as
+        | "low"
+        | "medium"
+        | "high"
+        | "urgent",
+      deliverable: text(formData, "deliverable"),
+      objective: text(formData, "objective"),
+      requirements: text(formData, "requirements"),
+      acceptance_criteria: text(formData, "acceptance_criteria"),
+      deliverables: formData.getAll("deliverables").filter(Boolean) as string[],
+      estimated_hours: text(formData, "estimated_hours")
+        ? Number(formData.get("estimated_hours"))
+        : null,
+      weight: text(formData, "weight") ? Number(formData.get("weight")) : 0,
+      is_required: formData.get("is_required") !== "off",
+      parent_subtask_id:
+        text(formData, "parent_subtask_id") &&
+        text(formData, "parent_subtask_id") !== "none"
+          ? text(formData, "parent_subtask_id")
+          : null,
+    })
+    .eq("id", id);
+
+  return { error: error?.message ?? undefined };
+}
+
+export async function updateSubtaskProgress(id: string, progress: number) {
+  const role = await requireRole();
+  if (!role) return { error: "PERMISSION_DENIED" };
+  if (!Number.isFinite(progress) || progress < 0 || progress > 100) {
+    return { error: "Tiến độ phải trong khoảng 0–100." };
+  }
+
+  const supabase = await createClient();
+  const { data: current } = await supabase
+    .from("task_subtasks")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+
+  const patch: Record<string, unknown> = { progress };
+  const st = current?.status as string | undefined;
+  if (progress > 0 && (st === "not_started" || st === undefined)) {
+    patch.status = "in_progress";
+  } else if (progress === 0 && st === "in_progress") {
+    patch.status = "not_started";
+  }
+
+  const { error } = await supabase
+    .from("task_subtasks")
+    .update(patch)
+    .eq("id", id);
+
+  return { error: error?.message ?? undefined };
+}
+
+export async function cancelSubtask(id: string) {
+  const role = await requireRole();
+  if (!isStaff(role)) return { error: "Bạn không có quyền hủy sub-task." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("task_subtasks")
+    .update({ status: "cancelled" as TaskStatus })
+    .eq("id", id);
 
   return { error: error?.message ?? undefined };
 }
@@ -292,10 +434,17 @@ export async function submitTask(
     }
   }
 
-  // Files
+  // Files → bucket riêng task-submissions
   for (const file of formData.getAll("files")) {
     if (!(file instanceof File) || file.size === 0) continue;
-    const res = await uploadFileToStorage(taskId, `submissions/${submission.id}`, file);
+    const validation = validateTaskFile(file);
+    if (validation) return { error: validation };
+    const res = await uploadSubmissionFileToStorage(
+      taskId,
+      submission.id,
+      classifyMime(file),
+      file,
+    );
     if (!res.path) continue;
     await supabase.from("task_submission_files").insert({
       submission_id: submission.id,
@@ -303,6 +452,8 @@ export async function submitTask(
       file_name: file.name,
       mime_type: file.type || null,
       file_size: file.size,
+      file_type: fileKindOf(file),
+      uploaded_by: userId,
     });
   }
 
@@ -338,13 +489,17 @@ export async function createReview(
     subtask_id: text(formData, "subtask_id"),
     submission_id: text(formData, "submission_id"),
     reviewer_id: (await currentUserId())!,
-    decision: decision as ReviewDecision,
+     decision: decision as ReviewDecision,
     completion: ((formData.get("completion") as string) ?? "complete") as ReviewCompletion,
     completion_pct: num("completion_pct"),
     quality_score: num("quality_score"),
     technical_score: num("technical_score"),
     documentation_score: num("documentation_score"),
     soft_score: num("soft_score"),
+    testing_score: num("testing_score"),
+    problem_solving_score: num("problem_solving_score"),
+    communication_score: num("communication_score"),
+    teamwork_score: num("teamwork_score"),
     deadline_bucket: (formData.get("deadline_bucket") as string) || null,
     feedback: text(formData, "feedback"),
     strengths: text(formData, "strengths"),
@@ -371,8 +526,10 @@ export async function uploadTaskAttachment(
   if (!(file instanceof File) || file.size === 0) {
     return { error: "Chưa chọn file." };
   }
+  const validation = validateTaskFile(file);
+  if (validation) return { error: validation };
 
-  const res = await uploadFileToStorage(taskId, "attachments", file);
+  const res = await uploadFileToStorage(taskId, classifyMime(file), file);
   if (!res.path) return { error: "Không upload được file." };
 
   const { error } = await supabase.from("task_attachments").insert({
@@ -382,14 +539,57 @@ export async function uploadTaskAttachment(
     file_name: file.name,
     mime_type: file.type || null,
     file_size: file.size,
+    file_type: fileKindOf(file),
   });
 
   return { error: error?.message ?? undefined };
 }
 
+export async function deleteTaskAttachment(attachmentId: string) {
+  const role = await requireRole();
+  if (!isStaff(role)) return { error: "Bạn không có quyền xóa file." };
+
+  const supabase = await createClient();
+  const { data: row } = await supabase
+    .from("task_attachments")
+    .select("file_path, task_id")
+    .eq("id", attachmentId)
+    .maybeSingle();
+  if (!row) return { error: "Không tìm thấy file." };
+
+  await supabase.from("task_attachments").delete().eq("id", attachmentId);
+  const admin = createAdminClient();
+  await admin.storage.from("task-attachments").remove([row.file_path]);
+  return {};
+}
+
 // ==========================================================================
 // Storage helper (service role — bỏ qua RLS storage)
 // ==========================================================================
+async function uploadSubmissionFileToStorage(
+  taskId: string,
+  submissionId: string,
+  kind: string,
+  file: File,
+): Promise<{ path: string | null; error?: string }> {
+  try {
+    const safeName = file.name.replace(/[^\w.\-]+/g, "_");
+    const path = `${taskId}/${submissionId}/${kind}/${Date.now()}-${safeName}`;
+    const buf = Buffer.from(await file.arrayBuffer());
+    const admin = createAdminClient();
+    const { error } = await admin.storage
+      .from("task-submissions")
+      .upload(path, buf, {
+        contentType: file.type || undefined,
+        upsert: false,
+      });
+    if (error) return { path: null, error: error.message };
+    return { path };
+  } catch (e) {
+    return { path: null, error: e instanceof Error ? e.message : "upload error" };
+  }
+}
+
 async function uploadFileToStorage(
   taskId: string,
   subPath: string,

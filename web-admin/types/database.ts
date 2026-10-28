@@ -461,6 +461,10 @@ export interface TasksRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  progress: number;
+  weight: number;
+  parent_task_id: string | null;
+  root_task_id: string | null;
 }
 
 export interface TaskCommentsRow {
@@ -468,6 +472,38 @@ export interface TaskCommentsRow {
   task_id: string;
   user_id: string;
   content: string;
+  created_at: string;
+}
+
+export interface ImportJobsRow {
+  id: string;
+  import_type: string;
+  file_name: string | null;
+  file_size: number | null;
+  target_batch_id: string | null;
+  total_rows: number;
+  valid_rows: number;
+  success_rows: number;
+  failed_rows: number;
+  duplicate_rows: number;
+  import_mode: string;
+  status: string;
+  error_message: string | null;
+  created_by: string | null;
+  created_at: string;
+  completed_at: string | null;
+}
+
+export interface ImportJobItemsRow {
+  id: string;
+  import_job_id: string;
+  row_number: number;
+  raw_data: Json | null;
+  normalized_data: Json | null;
+  status: string;
+  error_code: string | null;
+  error_message: string | null;
+  created_record_id: string | null;
   created_at: string;
 }
 
@@ -480,6 +516,8 @@ export interface TaskAttachmentsRow {
   mime_type: string | null;
   file_size: number | null;
   created_at: string;
+  file_type: string;
+  updated_at: string;
 }
 
 export interface TaskAssigneesRow {
@@ -506,6 +544,17 @@ export interface TaskSubtasksRow {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  parent_subtask_id: string | null;
+  progress: number;
+  weight: number;
+  estimated_hours: number | null;
+  objective: string | null;
+  requirements: string | null;
+  acceptance_criteria: string | null;
+  deliverables: Json;
+  is_required: boolean;
+  completed_at: string | null;
+  sort_order: number;
 }
 
 export interface TaskSubmissionsRow {
@@ -520,6 +569,9 @@ export interface TaskSubmissionsRow {
   notes: string | null;
   submission_no: number;
   submitted_at: string;
+  status: string;
+  reviewed_at: string | null;
+  updated_at: string;
 }
 
 export interface TaskSubmissionFilesRow {
@@ -530,6 +582,8 @@ export interface TaskSubmissionFilesRow {
   mime_type: string | null;
   file_size: number | null;
   created_at: string;
+  file_type: string;
+  uploaded_by: string | null;
 }
 
 export interface TaskSubmissionLinksRow {
@@ -553,6 +607,10 @@ export interface TaskReviewsRow {
   technical_score: number | null;
   documentation_score: number | null;
   soft_score: number | null;
+  testing_score: number | null;
+  problem_solving_score: number | null;
+  communication_score: number | null;
+  teamwork_score: number | null;
   deadline_bucket: string | null;
   feedback: string | null;
   strengths: string | null;
@@ -879,6 +937,7 @@ export interface EvaluationCriteriaRow {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  code: string | null;
 }
 
 export interface EvaluationsRow {
@@ -893,6 +952,14 @@ export interface EvaluationsRow {
   summary: string | null;
   created_at: string;
   updated_at: string;
+  status: string;
+  overall_level: string | null;
+  reviewed_at: string | null;
+  strengths: string | null;
+  needs_improvement: string | null;
+  recommendation: string | null;
+  period_start: string | null;
+  period_end: string | null;
 }
 
 export interface EvaluationScoresRow {
@@ -903,6 +970,7 @@ export interface EvaluationScoresRow {
   comment: string | null;
   created_at: string;
   updated_at: string;
+  rating_level: string | null;
 }
 
 export interface CertificatesRow {
@@ -1164,6 +1232,11 @@ export interface Database {
           rel<"comments_user_id_fkey", "user_id", "profiles">,
         ]
       >;
+      import_jobs: Ident<
+        ImportJobsRow,
+        [rel<"import_jobs_target_batch_id_fkey", "target_batch_id", "internship_batches">]
+      >;
+      import_job_items: Ident<ImportJobItemsRow, []>;
       task_attachments: Ident<
         TaskAttachmentsRow,
         [
