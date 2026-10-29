@@ -22,3 +22,4 @@ Thiết kế hệ thống IMS theo 18 phần (theo spec yêu cầu).
 | 16 | [16-deployment.md](16-deployment.md) | Deployment hướng dẫn |
 | 17 | [17-folder-structure.md](17-folder-structure.md) | Cấu trúc folder |
 | 18 | [18-roadmap.md](18-roadmap.md) | Lộ trình triển khai |
+| 19 | [19-ux-ui-optimization.md](19-ux-ui-optimization.md) | Đề xuất tối ưu UX/UI theo từng role (Admin/HR/Mentor/Intern) |

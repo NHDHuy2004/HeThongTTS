@@ -9,7 +9,7 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { createOnboardingRecordAction } from "./actions";
 import type { OnboardingRecordOption } from "./data";
@@ -72,14 +72,14 @@ export function CreateOnboardingRecordForm({
       <Button onClick={() => setOpen(true)} disabled={internships.length === 0}>
         <Plus />Tạo hồ sơ
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-lg overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Tạo hồ sơ onboarding</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tạo hồ sơ onboarding</DialogTitle>
+            <DialogDescription>
               Chọn kỳ thực tập đã được phân công. Hệ thống sẽ liên kết thực tập sinh, đợt, phòng ban và mentor hiện có.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="internship_id">Hồ sơ thực tập</Label>
@@ -152,14 +152,14 @@ export function CreateOnboardingRecordForm({
             </div>
 
             {state.error ? <p role="alert" className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter>
+            <DialogFooter>
               <Button type="submit" disabled={pending || internships.length === 0}>
                 {pending ? "Đang tạo..." : "Tạo hồ sơ"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -1,14 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { LogOut, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { Avatar } from "@/components/ui/avatar";
+import { CommandPalette } from "@/components/command-palette";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { roleLabel } from "@/features/labels";
 import { logout } from "@/app/(auth)/login/actions";
+import { Breadcrumbs } from "./breadcrumbs";
 import { Sidebar } from "./sidebar";
 
 export function Topbar({
@@ -36,30 +46,46 @@ export function Topbar({
         </SheetContent>
       </Sheet>
 
-      <div className="hidden items-center gap-2 text-sm sm:flex">
-        <span className="font-semibold text-foreground">{user.full_name}</span>
-        <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-300">
-          {roleLabel[user.role] ?? user.role}
-        </span>
-      </div>
+      <Breadcrumbs />
 
-      <div className="ml-auto flex items-center gap-3">
-        <Avatar className="size-8.5 ring-2 ring-emerald-600/20" aria-label={user.full_name}>
-          <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-600 to-emerald-800 text-white text-xs font-bold shadow-xs">
-            {user.full_name.slice(0, 2).toUpperCase()}
-          </span>
-        </Avatar>
-        <Separator orientation="vertical" className="h-5" />
-        <form action={logout}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="sm"
-            className="border-emerald-600/30 hover:border-orange-500/50 hover:bg-orange-500/10 hover:text-orange-700 text-xs font-medium transition-colors"
-          >
-            Đăng xuất
-          </Button>
-        </form>
+      <div className="ml-auto flex items-center gap-2">
+        <CommandPalette role={user.role} />
+        <ThemeToggle />
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <Button variant="ghost" className="gap-2 px-2" aria-label="Tài khoản">
+                <Avatar className="size-8 ring-2 ring-emerald-600/20">
+                  <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-600 to-emerald-800 text-white text-xs font-bold shadow-xs">
+                    {user.full_name.slice(0, 2).toUpperCase()}
+                  </span>
+                </Avatar>
+                <span className="hidden max-w-36 truncate text-sm font-medium md:inline">
+                  {user.full_name}
+                </span>
+              </Button>
+            }
+          />
+          <DropdownMenuContent align="end" className="w-60">
+            <DropdownMenuLabel>
+              <p className="truncate text-sm font-semibold">{user.full_name}</p>
+              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+              <span className="mt-1.5 inline-flex items-center px-1.5 py-0.2 text-[10px] font-semibold rounded-md bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-300">
+                {roleLabel[user.role] ?? user.role}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => {
+                void logout();
+              }}
+              className="cursor-pointer text-destructive focus:text-destructive"
+            >
+              <LogOut />
+              Đăng xuất
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

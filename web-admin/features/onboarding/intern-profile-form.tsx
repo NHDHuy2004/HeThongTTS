@@ -9,7 +9,7 @@ import { UserRoundPen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import type { InternsRow } from "@/types/database";
 import { updateInternOnboardingProfileAction } from "./actions";
@@ -32,12 +32,12 @@ export function InternOnboardingProfileForm({ intern }: { intern: InternsRow }) 
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}><UserRoundPen />Cập nhật thông tin</Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-lg overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Thông tin liên hệ</SheetTitle>
-            <SheetDescription>Chỉ cập nhật các trường HR cho phép trong quá trình onboarding.</SheetDescription>
-          </SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Thông tin liên hệ</DialogTitle>
+            <DialogDescription>Chỉ cập nhật các trường HR cho phép trong quá trình onboarding.</DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="profile-name">Họ và tên</Label>
@@ -66,10 +66,10 @@ export function InternOnboardingProfileForm({ intern }: { intern: InternsRow }) 
               <Textarea id="profile-address" name="address" defaultValue={intern.address ?? ""} />
             </div>
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Lưu thông tin"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Lưu thông tin"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

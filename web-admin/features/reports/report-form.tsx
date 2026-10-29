@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   createReportAction,
   updateReportAction,
@@ -67,6 +68,8 @@ export function ReportForm({
   const [fileError, setFileError] = React.useState<string | null>(null);
   const [tasks, setTasks] = React.useState<TaskOption[]>([]);
   const submitMode = useRef("");
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const [confirm, confirmDialog] = useConfirm();
 
   const dirty = React.useRef(false);
   const setDirty = () => {
@@ -200,7 +203,7 @@ export function ReportForm({
   const fields = REPORT_FIELDS[reportType] ?? [];
 
   return (
-    <form action={formAction} className="flex flex-col gap-5">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-5">
       {isEdit ? <input type="hidden" name="report_id" value={initial?.report_id} /> : null}
       <input type="hidden" name="report_type" value={reportType} />
 
@@ -430,14 +433,17 @@ export function ReportForm({
           {pending ? "Đang lưu..." : "Lưu nháp"}
         </Button>
         <Button
-          type="submit"
+          type="button"
           disabled={pending}
-          onClick={(e) => {
+          onClick={async () => {
+            const ok = await confirm({
+              title: "Nộp báo cáo?",
+              description: "Báo cáo sẽ được gửi cho mentor xét duyệt.",
+              confirmLabel: "Nộp báo cáo",
+            });
+            if (!ok) return;
             submitMode.current = "1";
-            if (!window.confirm("Xác nhận nộp báo cáo cho mentor xét duyệt?")) {
-              submitMode.current = "";
-              e.preventDefault();
-            }
+            formRef.current?.requestSubmit();
           }}
         >
           {pending ? "Đang nộp..." : "Nộp báo cáo"}
@@ -451,6 +457,7 @@ export function ReportForm({
           Quay lại
         </Button>
       </div>
+      {confirmDialog}
     </form>
   );
 }

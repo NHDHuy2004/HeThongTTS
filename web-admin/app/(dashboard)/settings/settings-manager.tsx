@@ -11,13 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { updateSetting, type SettingFormState } from "./settings-actions";
 
 export type SettingRow = {
@@ -86,12 +86,12 @@ function SettingItem({
         </Button>
       </div>
 
-      <Sheet open={open} onOpenChange={(o) => onEdit(o ? row.key : null)}>
-        <SheetContent className="w-full max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Cấu hình: {row.key}</SheetTitle>
-            <SheetDescription>Lưu trữ theo chuỗi JSON.</SheetDescription>
-          </SheetHeader>
+      <Dialog open={open} onOpenChange={(o) => onEdit(o ? row.key : null)}>
+        <DialogContent className="max-w-md overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Cấu hình: {row.key}</DialogTitle>
+            <DialogDescription>Lưu trữ theo chuỗi JSON.</DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 py-4">
             <input type="hidden" name="key" value={row.key} />
             <div className="flex flex-col gap-2">
@@ -121,14 +121,14 @@ function SettingItem({
               </p>
             ) : null}
 
-            <SheetFooter className="pt-2">
+            <DialogFooter className="pt-2">
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

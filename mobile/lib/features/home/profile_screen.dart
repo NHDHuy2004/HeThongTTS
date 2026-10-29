@@ -56,6 +56,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: const Text('Đăng xuất'),
             onTap: () async {
               final navigator = Navigator.of(context);
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Đăng xuất?'),
+                  content: const Text('Bạn sẽ phải đăng nhập lại để tiếp tục.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Hủy'),
+                    ),
+                    FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('Đăng xuất'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed != true || !mounted) return;
               await FcmService.unregisterDevice();
               await RealtimeService.instance.stop();
               await SupabaseService.instance.auth.signOut();

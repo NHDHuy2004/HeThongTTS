@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { CatalogDocumentManager, type CatalogDocument } from "./catalog-document-manager";
 import { ONBOARDING_CATEGORIES } from "./constants";
@@ -35,19 +35,19 @@ function CreateTemplateForm() {
   return (
     <>
       <Button onClick={() => setOpen(true)}><Plus />Tạo mẫu</Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-lg">
-          <SheetHeader><SheetTitle>Tạo mẫu checklist</SheetTitle><SheetDescription>Mẫu có thể được sao chép sang hồ sơ mới.</SheetDescription></SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Tạo mẫu checklist</DialogTitle><DialogDescription>Mẫu có thể được sao chép sang hồ sơ mới.</DialogDescription></DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <div className="flex flex-col gap-2"><Label>Mã mẫu</Label><Input name="code" placeholder="STANDARD_V2" required /></div>
             <div className="flex flex-col gap-2"><Label>Tên mẫu</Label><Input name="name" required /></div>
             <div className="flex flex-col gap-2"><Label>Mô tả</Label><Textarea name="description" /></div>
             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="is_active" value="false" /><input type="checkbox" name="is_active" value="true" defaultChecked />Kích hoạt ngay</label>
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Tạo mẫu"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Tạo mẫu"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -70,9 +70,9 @@ function AddTemplateItemForm({ templateId, documents }: { templateId: string; do
   return (
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}><Plus />Thêm mục</Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-lg overflow-y-auto">
-          <SheetHeader><SheetTitle>Thêm mục vào mẫu</SheetTitle><SheetDescription>Đặt số ngày tương đối so với ngày bắt đầu onboarding.</SheetDescription></SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg overflow-y-auto">
+          <DialogHeader><DialogTitle>Thêm mục vào mẫu</DialogTitle><DialogDescription>Đặt số ngày tương đối so với ngày bắt đầu onboarding.</DialogDescription></DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <div className="flex flex-col gap-2"><Label>Tên công việc</Label><Input name="title" required /></div>
             <div className="flex flex-col gap-2"><Label>Mô tả</Label><Textarea name="description" /></div>
@@ -84,10 +84,10 @@ function AddTemplateItemForm({ templateId, documents }: { templateId: string; do
             </div>
             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="is_required" value="false" /><input type="checkbox" name="is_required" value="true" defaultChecked />Bắt buộc</label>
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Thêm mục"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Thêm mục"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -109,9 +109,9 @@ function DocumentTypeForm() {
   return (
     <>
       <Button variant="outline" onClick={() => setOpen(true)}><Plus />Thêm loại</Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md">
-          <SheetHeader><SheetTitle>Loại tài liệu</SheetTitle><SheetDescription>Cấu hình loại HR có thể giao cho thực tập sinh.</SheetDescription></SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Loại tài liệu</DialogTitle><DialogDescription>Cấu hình loại HR có thể giao cho thực tập sinh.</DialogDescription></DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <div className="flex flex-col gap-2"><Label>Mã</Label><Input name="code" placeholder="tax_code" required /></div>
             <div className="flex flex-col gap-2"><Label>Tên loại</Label><Input name="name" required /></div>
@@ -119,10 +119,10 @@ function DocumentTypeForm() {
             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="is_required_default" value="false" /><input type="checkbox" name="is_required_default" value="true" />Mặc định bắt buộc</label>
             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="is_active" value="false" /><input type="checkbox" name="is_active" value="true" defaultChecked />Kích hoạt</label>
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Thêm loại"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Thêm loại"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

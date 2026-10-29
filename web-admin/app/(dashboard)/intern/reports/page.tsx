@@ -4,6 +4,7 @@ import { FilePlus2 } from "lucide-react";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { MigrationNotice } from "@/components/migration-notice";
 import { PageHeader } from "@/components/page-header";
 import { ReportsTable, type ReportRowView } from "@/features/reports/reports-table";
 
@@ -45,10 +46,11 @@ export default async function InternReportsPage() {
       />
 
       {migrationMissing ? (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
-          Chưa tìm thấy bảng <code>reports</code> — hãy chạy migration{" "}
-          <code>0018_reports_management.sql</code> trong Supabase Dashboard.
-        </div>
+        <MigrationNotice
+          role={role}
+          table="reports"
+          migration="0018_reports_management.sql"
+        />
       ) : null}
 
       <ReportsTable rows={rows} mode="mine" detailBase="/intern/reports" />

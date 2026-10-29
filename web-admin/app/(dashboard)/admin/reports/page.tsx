@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Download } from "lucide-react";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { ExportCsvButton } from "@/components/export-csv-button";
+import { MigrationNotice } from "@/components/migration-notice";
 import { PageHeader } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
 import { ReportsTable, type ReportRowView } from "@/features/reports/reports-table";
 
 type Stats = {
@@ -81,30 +82,20 @@ export default async function AdminReportsPage() {
             ? "Báo cáo của thực tập sinh bạn phụ trách"
             : "Theo dõi tiến độ nộp báo cáo và xét duyệt toàn hệ thống"
         }
-        actions={
-          <Link
-            href="/api/exports/reports"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-          >
-            <Download className="size-4" />
-            Xuất CSV
-          </Link>
-        }
+        actions={<ExportCsvButton href="/api/exports/reports" />}
       />
 
       {migrationMissing ? (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
-          Chưa tìm thấy bảng <code>reports</code> — hãy chạy migration{" "}
-          <code>0018_reports_management.sql</code> trong Supabase Dashboard.
-        </div>
+        <MigrationNotice
+          role={role}
+          table="reports"
+          migration="0018_reports_management.sql"
+        />
       ) : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {statCards.map((s) => (
-          <div key={s.label} className="flex flex-col gap-1 rounded-lg border p-4">
-            <span className="text-xs text-muted-foreground">{s.label}</span>
-            <span className="text-2xl font-bold">{s.value}</span>
-          </div>
+          <StatCard key={s.label} label={s.label} value={s.value} />
         ))}
       </div>
 

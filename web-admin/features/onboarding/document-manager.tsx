@@ -11,8 +11,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm, usePrompt } from "@/components/confirm-dialog";
 import { formatDate, formatDateTime } from "@/features/labels";
 import { createClient } from "@/lib/supabase/client";
 import { ONBOARDING_ALLOWED_MIME_TYPES, ONBOARDING_MAX_FILE_SIZE } from "./constants";
@@ -80,9 +81,9 @@ function DocumentRequestForm({ recordId, catalog, types, disabled }: {
   return (
     <>
       <Button onClick={() => setOpen(true)} disabled={disabled}><Plus />Yêu cầu tài liệu</Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-lg overflow-y-auto">
-          <SheetHeader><SheetTitle>Yêu cầu tài liệu</SheetTitle><SheetDescription>Tạo yêu cầu riêng hoặc dùng tài liệu trong thư viện.</SheetDescription></SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-lg overflow-y-auto">
+          <DialogHeader><DialogTitle>Yêu cầu tài liệu</DialogTitle><DialogDescription>Tạo yêu cầu riêng hoặc dùng tài liệu trong thư viện.</DialogDescription></DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <input type="hidden" name="catalog_document_id" value={catalogId} />
             <div className="flex flex-col gap-2">
@@ -121,10 +122,10 @@ function DocumentRequestForm({ recordId, catalog, types, disabled }: {
               Cho phép mentor xem tài liệu này
             </label>
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Tạo yêu cầu"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Tạo yêu cầu"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -204,6 +205,8 @@ export function DocumentManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [confirm, confirmDialog] = useConfirm();
+  const [prompt, promptDialog] = usePrompt();
   const canManage = role === "admin" || role === "hr";
   const locked = detail.status === "completed" || detail.status === "cancelled";
 
@@ -232,7 +235,8 @@ export function DocumentManager({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <>
+      <div className="flex flex-col gap-4">
       {canManage ? (
         <div className="flex justify-end">
           <DocumentRequestForm recordId={detail.id} catalog={catalog} types={documentTypes} disabled={locked} />
@@ -281,12 +285,13 @@ export function DocumentManager({
                     ) : null}
                     {canManage && document.status === "pending_review" && document.current_version_id ? (
                       <>
-                        <Button size="sm" disabled={pending} onClick={() => {
-                          if (!window.confirm("Duyệt phiên bản tài liệu hiện tại?")) return;
+                        <Button size="sm" disabled={pending} onClick={async () => {
+                          const ok = await confirm({ title: "Duyệt phiên bản tài liệu hiện tại?", description: document.document_name, confirmLabel: "Duyệt" });
+                          if (!ok) return;
                           run(() => reviewOnboardingDocumentAction(document.id, detail.id, document.current_version_id!, true));
                         }}><CheckCircle2 />Duyệt</Button>
-                        <Button size="sm" variant="destructive" disabled={pending} onClick={() => {
-                          const feedback = window.prompt("Nội dung cần bổ sung:");
+                        <Button size="sm" variant="destructive" disabled={pending} onClick={async () => {
+                          const feedback = await prompt({ title: "Nội dung cần bổ sung", label: "Nội dung cần bổ sung", placeholder: "Nhập nội dung thực tập sinh cần bổ sung...", minLength: 5 });
                           if (!feedback) return;
                           run(() => reviewOnboardingDocumentAction(document.id, detail.id, document.current_version_id!, false, feedback));
                         }}><XCircle />Yêu cầu bổ sung</Button>
@@ -302,6 +307,9 @@ export function DocumentManager({
           })}
         </div>
       )}
-    </div>
+      </div>
+      {confirmDialog}
+      {promptDialog}
+    </>
   );
 }

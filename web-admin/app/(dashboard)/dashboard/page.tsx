@@ -10,85 +10,19 @@ import {
   Inbox,
   Users,
   UsersRound,
-  type LucideIcon,
 } from "lucide-react";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { StatusBadge } from "@/components/status-badge";
-
-import { cn } from "cn";
-
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  tone = "emerald",
-}: {
-  label: string;
-  value: number | string;
-  icon: LucideIcon;
-  tone?: "emerald" | "orange";
-}) {
-  const isEmerald = tone === "emerald";
-  return (
-    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 border border-border/80 bg-card">
-      <div
-        className={cn(
-          "absolute top-0 left-0 right-0 h-1 transition-all",
-          isEmerald ? "bg-emerald-600 group-hover:h-1.5" : "bg-orange-500 group-hover:h-1.5",
-        )}
-      />
-      <CardContent className="flex items-center justify-between p-4 pt-5">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold text-muted-foreground tracking-wide">{label}</p>
-          <p className="text-2xl font-bold tracking-tight text-foreground">{value}</p>
-        </div>
-        <div
-          className={cn(
-            "flex size-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 group-hover:scale-105",
-            isEmerald
-              ? "bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-400"
-              : "bg-orange-500/12 text-orange-700 ring-1 ring-orange-500/20 dark:bg-orange-950/50 dark:text-orange-400",
-          )}
-        >
-          <Icon className="size-5.5" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function RecentList({
-  items,
-  emptyLabel,
-}: {
-  items: { id: string; title: string; status?: string; date?: string }[];
-  emptyLabel: string;
-}) {
-  if (items.length === 0) {
-    return <p className="text-sm text-muted-foreground">{emptyLabel}</p>;
-  }
-  return (
-    <ul className="flex flex-col gap-2">
-      {items.map((item) => (
-        <li key={item.id} className="flex items-center justify-between gap-2 p-2 rounded-lg hover:bg-muted/40 transition-colors">
-          <span className="min-w-0 truncate text-sm font-medium">{item.title}</span>
-          <span className="flex shrink-0 items-center gap-2">
-            {item.status ? <StatusBadge value={item.status} /> : null}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
+import { DashboardCharts } from "@/components/charts/dashboard-charts";
 
 export default async function DashboardPage() {
   const session = await requireAuth();
@@ -104,8 +38,10 @@ export default async function DashboardPage() {
     const onboardingStats = (onboardingData ?? {}) as Record<string, number>;
     const tasksByStatus =
       (stats.tasks_by_status as Record<string, number> | null) ?? {};
-    const batchesByStatus =
-      (stats.batches_by_status as Record<string, number> | null) ?? {};
+    const totalInterns = Number(stats.total_interns ?? 0);
+    const active = Number(stats.interns_active ?? 0);
+    const completed = Number(stats.interns_completed ?? 0);
+    const converted = Number(stats.converted ?? 0);
 
     return (
       <div className="flex flex-col gap-6">
@@ -126,38 +62,15 @@ export default async function DashboardPage() {
           <StatCard label="Onboarding quá hạn" value={String(onboardingStats.overdue ?? 0)} icon={Clock} tone="orange" />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Task theo trạng thái</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RecentList
-                items={Object.entries(tasksByStatus).map(([status, count]) => ({
-                  id: status,
-                  title: `${status}: ${String(count)}`,
-                  status,
-                }))}
-                emptyLabel="Chưa có task nào."
-              />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Đợt thực tập theo trạng thái</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RecentList
-                items={Object.entries(batchesByStatus).map(([status, count]) => ({
-                  id: status,
-                  title: `${status}: ${String(count)}`,
-                  status,
-                }))}
-                emptyLabel="Chưa có đợt thực tập nào."
-              />
-            </CardContent>
-          </Card>
-        </div>
+        <DashboardCharts
+          tasksByStatus={tasksByStatus}
+          internSummary={{
+            active,
+            completed,
+            converted,
+            other: Math.max(0, totalInterns - active - completed - converted),
+          }}
+        />
       </div>
     );
   }

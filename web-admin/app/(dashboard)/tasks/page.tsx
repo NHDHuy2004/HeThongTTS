@@ -87,7 +87,7 @@ export default async function TasksPage() {
         description="Giao việc và theo dõi tiến độ thực tập sinh"
         actions={canManage ? <TaskForm internships={internships} /> : undefined}
       />
-      <TasksBoard tasks={boardTasks} />
+      <TasksBoard tasks={boardTasks} canManage={canManage} />
     </div>
   );
 }

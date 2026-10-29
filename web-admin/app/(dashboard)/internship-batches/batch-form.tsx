@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function BatchForm() {
   const [open, setOpen] = React.useState(false);
@@ -57,12 +57,12 @@ export function BatchForm() {
         <Plus className="size-4" />
         Tạo đợt thực tập
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md">
-          <SheetHeader>
-            <SheetTitle>Tạo đợt thực tập</SheetTitle>
-            <SheetDescription>Đợt mới sẽ ở trạng thái “sắp tới”.</SheetDescription>
-          </SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Tạo đợt thực tập</DialogTitle>
+            <DialogDescription>Đợt mới sẽ ở trạng thái “sắp tới”.</DialogDescription>
+          </DialogHeader>
           <form onSubmit={onSubmit} className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="name">Tên đợt</Label>
@@ -96,14 +96,14 @@ export function BatchForm() {
                 <Input id="location" name="location" />
               </div>
             </div>
-            <SheetFooter className="pt-2">
+            <DialogFooter className="pt-2">
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

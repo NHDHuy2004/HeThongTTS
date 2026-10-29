@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/supabase.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/empty_view.dart';
 import '../../shared/error_view.dart';
 import '../../shared/format.dart';
+import '../../shared/skeleton.dart';
+import '../../shared/snackbar.dart';
 import '../../shared/status_pill.dart';
 
 const _typeLabels = <String, String>{
@@ -57,11 +60,9 @@ class _RequestsScreenState extends State<RequestsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString();
+      debugPrint('Requests load failed: $e');
       setState(() {
-        _error = msg.contains('Could not find the table')
-            ? 'Chưa chạy migration 0017_requests_management.sql — hãy chạy trong Supabase Dashboard.'
-            : msg;
+        _error = 'Không thể tải dữ liệu. Vui lòng thử lại.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -120,21 +121,34 @@ class _RequestsScreenState extends State<RequestsScreen> {
               label: const Text('Tạo đơn'),
             ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _requests.isEmpty
-                  ? const EmptyView(
-                      icon: Icons.request_page,
-                      message: 'Chưa có đơn nào.',
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView(
-                        padding: const EdgeInsets.only(bottom: 88),
-                        children: _requests.map(_card).toList(),
+          ? const SkeletonListView()
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: _error != null
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: 400,
+                        child: ErrorView(message: _error!, onRetry: _load),
                       ),
-                    ),
+                    )
+                  : _requests.isEmpty
+                      ? const SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: 400,
+                            child: EmptyView(
+                              icon: Icons.request_page,
+                              message: 'Chưa có đơn nào.',
+                            ),
+                          ),
+                        )
+                      : ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 88),
+                          children: _requests.map(_card).toList(),
+                        ),
+            ),
     );
   }
 
@@ -155,7 +169,11 @@ class _RequestsScreenState extends State<RequestsScreen> {
       period = '${fmtDbDate(startDate)} → ${fmtDbDate(endDate)}';
     }
 
-    return Card(
+    // Duyệt mode: vuốt phải = phê duyệt, vuốt trái = yêu cầu bổ sung.
+    final reviewable =
+        widget.approveMode && ['pending', 'in_review'].contains(status);
+
+    final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: InkWell(
         onTap: () => _openDetail(row),
@@ -197,6 +215,90 @@ class _RequestsScreenState extends State<RequestsScreen> {
         ),
       ),
     );
+
+    if (!reviewable) return card;
+
+    return Dismissible(
+      key: ValueKey('request-${row['id']}'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        final ok = await _swipeConfirm(
+          direction == DismissDirection.endToStart
+              ? 'Yêu cầu bổ sung đơn này?'
+              : 'Phê duyệt đơn này?',
+        );
+        if (ok) {
+          await _swipeReview(
+            row['id'],
+            direction == DismissDirection.endToStart
+                ? 'request_revision'
+                : 'approve',
+          );
+        }
+        return false; // reload sẽ render lại list
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: AppColors.success,
+        child: const Icon(Icons.check, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: AppColors.warning,
+        child: const Icon(Icons.edit_note, color: Colors.white),
+      ),
+      child: card,
+    );
+  }
+
+  Future<bool> _swipeConfirm(String message) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Đóng'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  Future<void> _swipeReview(String id, String action) async {
+    try {
+      final result = await SupabaseService.instance
+          .rpc<Map<String, dynamic>>(
+        'review_request',
+        params: {'p_request_id': id, 'p_action': action, 'p_comment': null},
+      );
+      if (!mounted) return;
+      if (result['success'] != true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  (result['message'] ?? 'Không thể xử lý đơn').toString())),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text((result['message'] ?? 'Đã cập nhật').toString())),
+      );
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(friendlyErrorSnack(e));
+      }
+    }
   }
 }
 
@@ -342,7 +444,7 @@ class _RequestFormState extends State<_RequestForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -538,7 +640,7 @@ class _RequestDetailState extends State<_RequestDetail> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

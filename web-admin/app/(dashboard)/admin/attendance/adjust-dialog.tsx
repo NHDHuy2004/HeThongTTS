@@ -7,13 +7,13 @@ import { Wrench } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { adjustAttendanceAction, type AdjustState } from "@/features/attendance/actions";
@@ -57,14 +57,14 @@ export function AdjustAttendanceButton({
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Wrench /> Điều chỉnh
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md">
-          <SheetHeader>
-            <SheetTitle>Điều chỉnh điểm danh</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Điều chỉnh điểm danh</DialogTitle>
+            <DialogDescription>
               Mọi điều chỉnh đều được ghi vào nhật ký audit kèm lý do.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <input type="hidden" name="attendance_id" value={attendanceId} />
             <div className="flex flex-col gap-2">
@@ -101,14 +101,14 @@ export function AdjustAttendanceButton({
             {state.error ? (
               <p role="alert" className="text-sm text-destructive">{state.error}</p>
             ) : null}
-            <SheetFooter>
+            <DialogFooter>
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu điều chỉnh"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

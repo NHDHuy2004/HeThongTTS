@@ -11,8 +11,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm, usePrompt } from "@/components/confirm-dialog";
 import { formatDate, getStatusLabel } from "@/features/labels";
 import { ONBOARDING_CATEGORIES, ONBOARDING_CHECKLIST_STATUSES } from "./constants";
 import {
@@ -131,16 +132,16 @@ function AddChecklistForm({ recordId, profiles, documents, disabled }: {
   return (
     <>
       <Button onClick={() => setOpen(true)} disabled={disabled}><Plus />Thêm công việc</Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-xl overflow-y-auto">
-          <SheetHeader><SheetTitle>Thêm checklist</SheetTitle><SheetDescription>Tạo công việc riêng cho hồ sơ này.</SheetDescription></SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Thêm checklist</DialogTitle><DialogDescription>Tạo công việc riêng cho hồ sơ này.</DialogDescription></DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <ChecklistFields profiles={profiles} documents={documents} />
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Thêm công việc"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Thêm công việc"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -169,16 +170,16 @@ function EditChecklistForm({ item, recordId, profiles, documents, disabled }: {
   return (
     <>
       <Button size="icon-sm" variant="ghost" onClick={() => setOpen(true)} disabled={disabled} aria-label="Sửa checklist"><Pencil /></Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-xl overflow-y-auto">
-          <SheetHeader><SheetTitle>Chỉnh sửa checklist</SheetTitle><SheetDescription>Cập nhật nội dung, người phụ trách và thời hạn.</SheetDescription></SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl overflow-y-auto">
+          <DialogHeader><DialogTitle>Chỉnh sửa checklist</DialogTitle><DialogDescription>Cập nhật nội dung, người phụ trách và thời hạn.</DialogDescription></DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <ChecklistFields profiles={profiles} documents={documents} defaults={item} />
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Lưu"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Lưu"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -198,6 +199,8 @@ export function ChecklistManager({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [confirm, confirmDialog] = useConfirm();
+  const [prompt, promptDialog] = usePrompt();
   const canManage = role === "admin" || role === "hr";
   const locked = detail.status === "completed" || detail.status === "cancelled";
   const groups = Array.from(new Set(detail.checklist.map((item) => item.category)));
@@ -227,7 +230,8 @@ export function ChecklistManager({
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <>
+      <div className="flex flex-col gap-5">
       {canManage ? <div className="flex justify-end"><AddChecklistForm recordId={detail.id} profiles={profiles} documents={documents} disabled={locked} /></div> : null}
       {!detail.checklist.length ? <EmptyState title="Chưa có checklist" description="Thêm công việc thủ công để bắt đầu." /> : null}
       {groups.map((category) => (
@@ -275,12 +279,13 @@ export function ChecklistManager({
                     ) : null}
                     {canReview && item.status === "pending_review" ? (
                       <>
-                        <Button size="sm" variant="outline" disabled={pending} onClick={() => {
-                          if (!window.confirm("Duyệt mục checklist này?")) return;
+                        <Button size="sm" variant="outline" disabled={pending} onClick={async () => {
+                          const ok = await confirm({ title: "Duyệt mục checklist này?", description: item.title, confirmLabel: "Duyệt" });
+                          if (!ok) return;
                           run(() => reviewChecklistItemAction(item.id, detail.id, "approved"));
                         }}><Check />Duyệt</Button>
-                        <Button size="sm" variant="destructive" disabled={pending} onClick={() => {
-                          const feedback = window.prompt("Nội dung cần chỉnh sửa:");
+                        <Button size="sm" variant="destructive" disabled={pending} onClick={async () => {
+                          const feedback = await prompt({ title: "Nội dung cần chỉnh sửa", label: "Nội dung cần chỉnh sửa", placeholder: "Nhập những mục thực tập sinh cần sửa...", minLength: 5 });
                           if (!feedback) return;
                           run(() => reviewChecklistItemAction(item.id, detail.id, "needs_revision", feedback));
                         }}>Yêu cầu sửa</Button>
@@ -289,8 +294,9 @@ export function ChecklistManager({
                     {canManage ? (
                       <>
                         <EditChecklistForm item={item} recordId={detail.id} profiles={profiles} documents={documents} disabled={locked} />
-                        <Button size="icon-sm" variant="ghost" disabled={pending || locked} aria-label="Xóa checklist" onClick={() => {
-                          if (!window.confirm(`Xóa checklist “${item.title}”?`)) return;
+                        <Button size="icon-sm" variant="ghost" disabled={pending || locked} aria-label="Xóa checklist" onClick={async () => {
+                          const ok = await confirm({ title: `Xóa checklist “${item.title}”?`, description: "Hành động này không thể hoàn tác.", confirmLabel: "Xóa", destructive: true });
+                          if (!ok) return;
                           run(() => deleteChecklistItemAction(item.id, detail.id));
                         }}><Trash2 /></Button>
                       </>
@@ -302,6 +308,9 @@ export function ChecklistManager({
           </div>
         </section>
       ))}
-    </div>
+      </div>
+      {confirmDialog}
+      {promptDialog}
+    </>
   );
 }

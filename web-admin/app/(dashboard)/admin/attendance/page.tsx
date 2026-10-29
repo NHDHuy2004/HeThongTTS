@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { Download } from "lucide-react";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { AdminAttendanceTable, type AdminAttendanceRow } from "./admin-attendance-table";
 import {
@@ -35,15 +35,7 @@ export default async function AdminAttendancePage() {
       <PageHeader
         title="Quản lý điểm danh"
         description="Điểm danh GPS đã được xác minh ở backend — kèm lịch sử các lượt bị từ chối"
-        actions={
-          <a
-            href="/api/exports/attendance"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-          >
-            <Download className="size-4" />
-            Xuất CSV
-          </a>
-        }
+        actions={<ExportCsvButton href="/api/exports/attendance" />}
       />
 
       <section className="flex flex-col gap-3">

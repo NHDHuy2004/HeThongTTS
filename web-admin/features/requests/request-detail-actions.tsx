@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from "@/components/confirm-dialog";
 import { reviewRequestAction, type RequestActionState } from "./actions";
 
 const REVIEWABLE = new Set(["pending", "in_review"]);
@@ -21,6 +22,7 @@ export function RequestDetailActions({
   mode: "mine" | "review";
 }) {
   const [comment, setComment] = React.useState("");
+  const [confirm, confirmDialog] = useConfirm();
 
   const [state, formAction, pending] = useActionState<RequestActionState, FormData>(
     async (previous, formData) => {
@@ -36,13 +38,16 @@ export function RequestDetailActions({
     {},
   );
 
-  function run(action: string, opts?: { requireComment?: boolean; confirm?: string }) {
+  async function run(action: string, opts?: { requireComment?: boolean; confirm?: string }) {
     const trimmed = comment.trim();
     if (opts?.requireComment && trimmed.length < 5) {
       toast.error("Vui lòng nhập lý do / nội dung (tối thiểu 5 ký tự).");
       return;
     }
-    if (opts?.confirm && !window.confirm(opts.confirm)) return;
+    if (opts?.confirm) {
+      const ok = await confirm({ title: opts.confirm, confirmLabel: "Xác nhận" });
+      if (!ok) return;
+    }
 
     const formData = new FormData();
     formData.set("request_id", requestId);
@@ -104,6 +109,7 @@ export function RequestDetailActions({
         {state.error ? (
           <p role="alert" className="text-sm text-destructive">{state.error}</p>
         ) : null}
+        {confirmDialog}
       </div>
     );
   }
@@ -149,6 +155,7 @@ export function RequestDetailActions({
       {state.error ? (
         <p role="alert" className="text-sm text-destructive">{state.error}</p>
       ) : null}
+      {confirmDialog}
     </div>
   );
 }

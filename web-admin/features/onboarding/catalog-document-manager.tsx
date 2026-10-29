@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase/client";
 import { createCatalogDocumentAction, finalizeCatalogDocumentUpload, getOnboardingDocumentUrl } from "./actions";
@@ -40,9 +40,9 @@ function CreateCatalogForm({ types }: { types: NamedOption[] }) {
   return (
     <>
       <Button onClick={() => setOpen(true)}><Plus />Thêm tài liệu</Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md">
-          <SheetHeader><SheetTitle>Thêm tài liệu thư viện</SheetTitle><SheetDescription>Tạo mẫu để giao cho nhiều hồ sơ.</SheetDescription></SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Thêm tài liệu thư viện</DialogTitle><DialogDescription>Tạo mẫu để giao cho nhiều hồ sơ.</DialogDescription></DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <div className="flex flex-col gap-2"><Label>Tên tài liệu</Label><Input name="title" required /></div>
             <div className="flex flex-col gap-2"><Label>Loại</Label><select name="document_type" className="h-8 rounded-lg border bg-background px-2 text-sm">{types.map((type) => <option key={type.id} value={type.id}>{type.name}</option>)}</select></div>
@@ -50,10 +50,10 @@ function CreateCatalogForm({ types }: { types: NamedOption[] }) {
             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="is_required" value="false" /><input type="checkbox" name="is_required" value="true" />Mặc định bắt buộc</label>
             <label className="flex items-center gap-2 text-sm"><input type="hidden" name="is_guidance" value="false" /><input type="checkbox" name="is_guidance" value="true" defaultChecked />Tài liệu hướng dẫn</label>
             {state.error ? <p className="text-sm text-destructive">{state.error}</p> : null}
-            <SheetFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Tạo tài liệu"}</Button></SheetFooter>
+            <DialogFooter><Button type="submit" disabled={pending}>{pending ? "Đang lưu..." : "Tạo tài liệu"}</Button></DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

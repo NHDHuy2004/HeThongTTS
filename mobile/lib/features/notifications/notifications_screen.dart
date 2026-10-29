@@ -6,6 +6,7 @@ import '../../core/realtime.dart';
 import '../../core/supabase.dart';
 import '../../shared/empty_view.dart';
 import '../../shared/error_view.dart';
+import '../../shared/skeleton.dart';
 import '../../shared/format.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -65,7 +66,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         setState(() => _items = List<Map<String, dynamic>>.of(rows));
       }
     } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
+      if (!mounted) return;
+      debugPrint('Notifications load failed: $e');
+      setState(() => _error = 'Không thể tải dữ liệu. Vui lòng thử lại.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -79,6 +82,24 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   }
 
   Future<void> _delete(String id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xóa thông báo?'),
+        content: const Text('Thông báo này sẽ bị xóa vĩnh viễn.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     await SupabaseService.instance.from('notifications').delete().eq('id', id);
     await _load();
   }
@@ -88,18 +109,31 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     return Scaffold(
       appBar: AppBar(title: const Text('Thông báo')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _items.isEmpty
-                  ? const EmptyView(
-                      icon: Icons.notifications_none,
-                      message: 'Chưa có thông báo nào.',
+          ? const SkeletonListView()
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: _error != null
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: 400,
+                        child: ErrorView(message: _error!, onRetry: _load),
+                      ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView(
-                        children: _items.map((n) {
+                  : _items.isEmpty
+                      ? const SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: 400,
+                            child: EmptyView(
+                              icon: Icons.notifications_none,
+                              message: 'Chưa có thông báo nào.',
+                            ),
+                          ),
+                        )
+                      : ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: _items.map((n) {
                           final isUnread = n['read_at'] == null;
                           return ListTile(
                             leading: Icon(

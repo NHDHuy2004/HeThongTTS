@@ -9,13 +9,13 @@ import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createCertificate, type CertFormState } from "./certificate-actions";
 
 type Option = { id: string; name: string };
@@ -47,12 +47,12 @@ export function CertForm({ interns }: { interns: Option[] }) {
         <Plus className="size-4" />
         Tạo chứng nhận
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Tạo chứng nhận</SheetTitle>
-            <SheetDescription>Khởi tạo chứng nhận cho thực tập sinh hoàn thành.</SheetDescription>
-          </SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tạo chứng nhận</DialogTitle>
+            <DialogDescription>Khởi tạo chứng nhận cho thực tập sinh hoàn thành.</DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="intern_id">Intern</Label>
@@ -77,14 +77,14 @@ export function CertForm({ interns }: { interns: Option[] }) {
               </p>
             ) : null}
 
-            <SheetFooter className="pt-2">
+            <DialogFooter className="pt-2">
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

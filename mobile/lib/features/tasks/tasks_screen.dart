@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/supabase.dart';
 import '../../shared/empty_view.dart';
 import '../../shared/error_view.dart';
+import '../../shared/skeleton.dart';
 import '../../shared/format.dart';
 import '../../shared/status_pill.dart';
 import 'task_detail_screen.dart';
@@ -70,7 +71,7 @@ class _TasksScreenState extends State<TasksScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Công việc')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonListView()
           : _error != null
               ? ErrorView(message: _error!, onRetry: _load)
               : RefreshIndicator(

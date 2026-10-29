@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../../core/fcm.dart';
 import '../../core/supabase.dart';
 import '../../shared/format.dart';
+import '../../shared/skeleton.dart';
+import '../../shared/snackbar.dart';
 import '../../shared/status_pill.dart';
 
 const _kStatuses = [
@@ -124,11 +126,44 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  /// Hỏi xác nhận trước khi chuyển sang trạng thái "Đã hủy".
+  Future<bool> _confirmCancel(String title, String content) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(content),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Không'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    );
+    return result == true;
+  }
+
+  Future<void> _changeStatus(String value) async {
+    if (value == 'cancelled') {
+      final ok = await _confirmCancel(
+        'Hủy task?',
+        'Task sẽ chuyển sang trạng thái "Đã hủy".',
+      );
+      if (!ok) return;
+    }
+    await _updateStatus(value);
   }
 
   Future<void> _addSubtask() async {
@@ -179,7 +214,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     }
   }
@@ -229,7 +264,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     }
   }
@@ -244,7 +279,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     }
   }
@@ -373,7 +408,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     }
   }
@@ -520,7 +555,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     }
   }
@@ -547,7 +582,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Chi tiết công việc')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Padding(
+              padding: EdgeInsets.all(16),
+              child: SkeletonListView(itemCount: 4),
+            )
           : _error != null
               ? Center(child: Text(_error!))
               : RefreshIndicator(
@@ -640,7 +678,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               onPressed:
                   _busy || (isIntern && (value == 'completed' || value == 'cancelled'))
                       ? null
-                      : () => _updateStatus(value),
+                      : () => _changeStatus(value),
             )
           else
             Chip(
@@ -733,10 +771,16 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                               for (final (v, l) in _kStatuses)
                                 DropdownMenuItem(value: v, child: Text(l)),
                             ],
-                            onChanged: (v) {
-                              if (v != null) {
-                                _setSubtaskStatus(st['id'] as String, v);
+                            onChanged: (v) async {
+                              if (v == null) return;
+                              if (v == 'cancelled') {
+                                final ok = await _confirmCancel(
+                                  'Hủy sub-task?',
+                                  'Sub-task sẽ chuyển sang trạng thái "Đã hủy".',
+                                );
+                                if (!ok) return;
                               }
+                              _setSubtaskStatus(st['id'] as String, v);
                             },
                           )
                         : StatusPill(status: st['status'] as String? ?? ''),

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../features/notifications/notifications_screen.dart';
+import '../features/tasks/task_detail_screen.dart';
 import 'supabase.dart';
 
 const _kApiKey = String.fromEnvironment('FIREBASE_API_KEY');
@@ -195,7 +196,41 @@ class FcmService {
   }
 
   static void _onOpened(RemoteMessage message) {
+    final data = message.data;
+    final table = data['table']?.toString();
+    final id = data['id']?.toString();
+    // Server gửi data {'table': ..., 'id': ...} — deep link đúng màn chi tiết.
+    if (id != null && id.isNotEmpty) {
+      switch (table) {
+        case 'tasks':
+          _openTask(id);
+          return;
+        case 'requests':
+        case 'reports':
+        case 'notifications':
+        case 'evaluations':
+          _openNotifications();
+          return;
+      }
+    }
+    // Không có dữ liệu định danh → mặc định mở danh sách thông báo.
     _openNotifications();
+  }
+
+  /// Mở chi tiết công việc — cần role hiện tại nên phải fetch trước.
+  static Future<void> _openTask(String taskId) async {
+    if (SupabaseService.instance.auth.currentUser == null) return;
+    var role = 'intern';
+    try {
+      role = await SupabaseService.instance.rpc<String>('get_my_role');
+    } catch (e) {
+      debugPrint('[FCM] get_my_role lỗi: $e');
+    }
+    final nav = navigatorKey.currentState;
+    if (nav == null) return;
+    nav.push(MaterialPageRoute(
+      builder: (_) => TaskDetailScreen(taskId: taskId, role: role),
+    ));
   }
 
   /// Mở màn danh sách thông báo từ tap push (foreground/background/terminated).

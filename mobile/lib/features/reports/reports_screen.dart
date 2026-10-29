@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../core/supabase.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/empty_view.dart';
 import '../../shared/error_view.dart';
 import '../../shared/format.dart';
+import '../../shared/skeleton.dart';
+import '../../shared/snackbar.dart';
 import '../../shared/status_pill.dart';
 
 const _typeLabels = <String, String>{
@@ -105,11 +108,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      final msg = e.toString();
+      debugPrint('Reports load failed: $e');
       setState(() {
-        _error = msg.contains('Could not find the table')
-            ? 'Chưa chạy migration 0018_reports_management.sql — hãy chạy trong Supabase Dashboard.'
-            : msg;
+        _error = 'Không thể tải dữ liệu. Vui lòng thử lại.';
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -166,21 +167,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
               label: const Text('Tạo báo cáo'),
             ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? ErrorView(message: _error!, onRetry: _load)
-              : _reports.isEmpty
-                  ? const EmptyView(
-                      icon: Icons.fact_check,
-                      message: 'Chưa có báo cáo nào.',
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _load,
-                      child: ListView(
-                        padding: const EdgeInsets.only(bottom: 88),
-                        children: _reports.map(_card).toList(),
+          ? const SkeletonListView()
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: _error != null
+                  ? SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: SizedBox(
+                        height: 400,
+                        child: ErrorView(message: _error!, onRetry: _load),
                       ),
-                    ),
+                    )
+                  : _reports.isEmpty
+                      ? const SingleChildScrollView(
+                          physics: AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: 400,
+                            child: EmptyView(
+                              icon: Icons.fact_check,
+                              message: 'Chưa có báo cáo nào.',
+                            ),
+                          ),
+                        )
+                      : ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.only(bottom: 88),
+                          children: _reports.map(_card).toList(),
+                        ),
+            ),
     );
   }
 
@@ -203,7 +217,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ['draft', 'submitted', 'in_review', 'needs_revision'].contains(status) &&
         (row['due_date'] as String).compareTo(_today()) < 0;
 
-    return Card(
+    // Duyệt mode: vuốt phải = phê duyệt, vuốt trái = yêu cầu chỉnh sửa.
+    final reviewable = widget.approveMode &&
+        ['submitted', 'in_review'].contains(status);
+
+    final card = Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: InkWell(
         onTap: () => _openDetail(row),
@@ -257,6 +275,85 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
       ),
     );
+
+    if (!reviewable) return card;
+
+    return Dismissible(
+      key: ValueKey('report-${row['id']}'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (direction) async {
+        if (direction == DismissDirection.endToStart) {
+          // Vuốt trái — chỉ yêu cầu chỉnh sửa, không từ chối (tránh tai nạn).
+          final ok = await _swipeConfirm('Yêu cầu chỉnh sửa báo cáo này?');
+          if (ok) await _swipeReview(row['id'], 'request_revision');
+          return false; // reload sẽ render lại list
+        }
+        final ok = await _swipeConfirm('Phê duyệt báo cáo này?');
+        if (ok) await _swipeReview(row['id'], 'approve');
+        return false;
+      },
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        color: AppColors.success,
+        child: const Icon(Icons.check, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        color: AppColors.warning,
+        child: const Icon(Icons.edit_note, color: Colors.white),
+      ),
+      child: card,
+    );
+  }
+
+  Future<bool> _swipeConfirm(String message) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Xác nhận'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Đóng'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Xác nhận'),
+          ),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  Future<void> _swipeReview(String id, String action) async {
+    try {
+      final result = await SupabaseService.instance
+          .rpc<Map<String, dynamic>>(
+        'review_report',
+        params: {'p_report_id': id, 'p_action': action, 'p_comment': null},
+      );
+      if (!mounted) return;
+      if (result['success'] != true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(
+                  (result['message'] ?? 'Không thể xử lý báo cáo').toString())),
+        );
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text((result['message'] ?? 'Đã cập nhật').toString())),
+      );
+      await _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(friendlyErrorSnack(e));
+      }
+    }
   }
 }
 
@@ -482,7 +579,7 @@ class _ReportFormState extends State<_ReportForm> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -698,7 +795,7 @@ class _ReportDetailState extends State<_ReportDetail> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('$e')));
+            .showSnackBar(friendlyErrorSnack(e));
       }
     } finally {
       if (mounted) setState(() => _busy = false);

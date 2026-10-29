@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   createReportClientSubmit,
   reviewReportAction,
@@ -26,6 +27,7 @@ export function ReportDetailActions({
   mode: "mine" | "review";
 }) {
   const [comment, setComment] = React.useState("");
+  const [confirm, confirmDialog] = useConfirm();
 
   const [submitState, submitFormAction, submitPending] = useActionState<
     ReportActionState,
@@ -60,13 +62,16 @@ export function ReportDetailActions({
     {},
   );
 
-  function runReview(action: string, opts?: { requireComment?: boolean; confirm?: string }) {
+  async function runReview(action: string, opts?: { requireComment?: boolean; confirm?: string }) {
     const trimmed = comment.trim();
     if (opts?.requireComment && trimmed.length < 5) {
       toast.error("Vui lòng nhập lý do / nội dung (tối thiểu 5 ký tự).");
       return;
     }
-    if (opts?.confirm && !window.confirm(opts.confirm)) return;
+    if (opts?.confirm) {
+      const ok = await confirm({ title: opts.confirm, confirmLabel: "Xác nhận" });
+      if (!ok) return;
+    }
 
     const formData = new FormData();
     formData.set("report_id", reportId);
@@ -75,8 +80,13 @@ export function ReportDetailActions({
     reviewFormAction(formData);
   }
 
-  function runSubmit() {
-    if (!window.confirm("Xác nhận nộp báo cáo cho mentor xét duyệt?")) return;
+  async function runSubmit() {
+    const ok = await confirm({
+      title: "Nộp báo cáo?",
+      description: "Báo cáo sẽ được gửi cho mentor xét duyệt.",
+      confirmLabel: "Nộp báo cáo",
+    });
+    if (!ok) return;
     const formData = new FormData();
     formData.set("report_id", reportId);
     submitFormAction(formData);
@@ -119,6 +129,7 @@ export function ReportDetailActions({
             Đây là bản nháp — chưa được tính là đã nộp.
           </p>
         ) : null}
+        {confirmDialog}
       </div>
     );
   }
@@ -175,6 +186,7 @@ export function ReportDetailActions({
           Từ chối
         </Button>
       </div>
+      {confirmDialog}
     </div>
   );
 }

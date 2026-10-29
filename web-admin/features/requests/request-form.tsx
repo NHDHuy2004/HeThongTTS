@@ -11,13 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createRequestAction, type RequestActionState } from "./actions";
 import {
   ALLOWED_ATTACHMENT_TYPES,
@@ -126,14 +126,14 @@ export function CreateRequestButton({
       <Button onClick={() => setOpen(true)}>
         <FilePlus2 /> Tạo đơn
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-2xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Tạo đơn mới</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tạo đơn mới</DialogTitle>
+            <DialogDescription>
               Chọn loại đơn, điền lý do và gửi cho mentor / HR xét duyệt.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 px-4 pb-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
@@ -267,14 +267,14 @@ export function CreateRequestButton({
               <p role="alert" className="text-sm text-destructive">{state.error}</p>
             ) : null}
 
-            <SheetFooter>
+            <DialogFooter>
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang gửi..." : "Gửi đơn"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

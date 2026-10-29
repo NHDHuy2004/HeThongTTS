@@ -7,9 +7,11 @@ import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/supabase.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/empty_view.dart';
 import '../../shared/error_view.dart';
 import '../../shared/format.dart';
+import '../../shared/status_pill.dart' show statusColors;
 
 /// Điểm danh GPS — gửi tọa độ + độ chính xác tới Edge Function
 /// `attendance-check`, backend tự xác minh bán kính / khung giờ và
@@ -324,13 +326,13 @@ class _CheckinScreenState extends State<CheckinScreen> {
     if (!_serviceEnabled ||
         _permission == LocationPermission.denied ||
         _permission == LocationPermission.deniedForever) {
-      return Colors.orange;
+      return AppColors.warning;
     }
-    if (_locating) return Colors.blueGrey;
+    if (_locating) return AppColors.neutral;
     if (!_hasLocation || !_inZone || !_accuracyOk || _mockLocation) {
-      return Colors.redAccent;
+      return AppColors.danger;
     }
-    return Colors.green;
+    return AppColors.success;
   }
 
   IconData get _zoneIcon {
@@ -542,21 +544,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
 
             if (_success != null) ...[
               const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.green.shade300),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_success!)),
-                  ],
-                ),
-              ),
+              _SuccessBanner(message: _success!),
             ],
 
             if (_error != null) ...[
@@ -594,11 +582,7 @@ class _CheckinScreenState extends State<CheckinScreen> {
                         : status == 'late'
                             ? Icons.schedule
                             : Icons.event;
-                    final color = status == 'present'
-                        ? Colors.green
-                        : status == 'late'
-                            ? Colors.orange
-                            : Colors.blueGrey;
+                    final color = statusColors[status] ?? AppColors.neutral;
                     return Card(
                       child: ListTile(
                         dense: true,
@@ -641,6 +625,42 @@ class _TimeTile extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Banner thành công có micro-animation "peak moment":
+/// icon check nảy nhẹ (overshoot) khi appear.
+class _SuccessBanner extends StatelessWidget {
+  const _SuccessBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.elasticOut,
+      builder: (context, scale, child) =>
+          Transform.scale(scale: 0.6 + scale * 0.4, child: child),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border:
+              Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle,
+                color: AppColors.success, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+      ),
     );
   }
 }

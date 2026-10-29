@@ -2,19 +2,20 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { FileUp, Upload } from "lucide-react";
+import { Check, FileUp, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { cn } from "cn";
 import { importInternsCsv, type CsvInternRow } from "./actions";
 
 type Option = { id: string; name: string };
@@ -59,6 +60,8 @@ function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, "_");
 }
 
+const STEPS = ["Chọn file", "Xác nhận", "Kết quả"] as const;
+
 export function ImportCsvForm({
   batches,
   departments,
@@ -69,6 +72,7 @@ export function ImportCsvForm({
   mentors: Option[];
 }) {
   const [open, setOpen] = React.useState(false);
+  const [step, setStep] = React.useState(0);
   const [rows, setRows] = React.useState<CsvInternRow[]>([]);
   const [fileName, setFileName] = React.useState("");
   const [batchId, setBatchId] = React.useState("");
@@ -77,6 +81,22 @@ export function ImportCsvForm({
   const [busy, setBusy] = React.useState(false);
   const [strict, setStrict] = React.useState(false);
   const [result, setResult] = React.useState<Awaited<ReturnType<typeof importInternsCsv>> | null>(null);
+
+  function reset() {
+    setStep(0);
+    setRows([]);
+    setFileName("");
+    setBatchId("");
+    setDepartmentId("");
+    setMentorId("");
+    setStrict(false);
+    setResult(null);
+  }
+
+  function handleOpen(next: boolean) {
+    setOpen(next);
+    if (!next) reset();
+  }
 
   function handleFile(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -181,6 +201,7 @@ export function ImportCsvForm({
     );
     setBusy(false);
     setResult(res);
+    setStep(2);
 
     if (res.error) toast.error(res.error);
     if (res.imported) toast.success(`Đã import ${res.imported} thực tập sinh.`);
@@ -203,136 +224,206 @@ export function ImportCsvForm({
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button variant="outline" onClick={() => handleOpen(true)}>
         <FileUp className="size-4" />
         Import CSV
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Import thực tập sinh từ CSV</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={handleOpen}>
+        <DialogContent className="max-w-md overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Import thực tập sinh từ CSV</DialogTitle>
+            <DialogDescription>
               Cột hỗ trợ: mã SV, họ tên, email, SĐT, trường, ngành, lớp, giới tính, ngày sinh, địa chỉ.
-            </SheetDescription>
-          </SheetHeader>
-          <div className="flex flex-col gap-4 py-4">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="csv">File (.xlsx / .xls / .csv)</Label>
-              <Input
-                id="csv"
-                type="file"
-                accept=".csv,.xlsx,.xls,text/csv,text/plain"
-                onChange={handleFile}
-              />
-              {fileName ? (
-                <p className="text-xs text-muted-foreground">
-                  {fileName} — {rows.length} dòng đã đọc.
-                </p>
-              ) : null}
-            </div>
+            </DialogDescription>
+          </DialogHeader>
 
-            {rows.length ? (
-              <div className="flex flex-col gap-2">
-                <Label>Xem trước (5 dòng đầu)</Label>
-                <div className="overflow-hidden rounded-lg border text-xs">
-                  <table className="w-full">
-                    <thead className="bg-muted">
-                      <tr>
-                        <th className="px-2 py-1 text-left">Mã SV</th>
-                        <th className="px-2 py-1 text-left">Họ tên</th>
-                        <th className="px-2 py-1 text-left">Email</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.slice(0, 5).map((r, i) => (
-                        <tr key={i} className="border-t">
-                          <td className="px-2 py-1">{r.student_code || "—"}</td>
-                          <td className="px-2 py-1">{r.full_name || "—"}</td>
-                          <td className="px-2 py-1">{r.email || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+          {/* Thanh bước */}
+          <ol className="flex items-center gap-2 pt-2" aria-label="Tiến trình import">
+            {STEPS.map((label, i) => (
+              <li key={label} className="flex flex-1 flex-col items-center gap-1">
+                <span
+                  className={cn(
+                    "flex size-6 items-center justify-center rounded-full text-xs font-semibold transition-colors",
+                    i < step
+                      ? "bg-emerald-600 text-white"
+                      : i === step
+                        ? "bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-600/40 dark:text-emerald-400"
+                        : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {i < step ? <Check className="size-3.5" /> : i + 1}
+                </span>
+                <span
+                  className={cn(
+                    "text-[10px] font-medium",
+                    i === step ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="flex flex-col gap-4">
+            {step === 0 ? (
+              <>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="csv">File (.xlsx / .xls / .csv)</Label>
+                  <Input
+                    id="csv"
+                    type="file"
+                    accept=".csv,.xlsx,.xls,text/csv,text/plain"
+                    onChange={handleFile}
+                  />
+                  {fileName ? (
+                    <p className="text-xs text-muted-foreground">
+                      {fileName} — {rows.length} dòng đã đọc.
+                    </p>
+                  ) : null}
                 </div>
-              </div>
+                <DialogFooter className="pt-2">
+                  <Button disabled={!rows.length} onClick={() => setStep(1)}>
+                    Tiếp tục — {rows.length} dòng
+                  </Button>
+                </DialogFooter>
+              </>
             ) : null}
 
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="import_batch">Gán vào đợt thực tập (tùy chọn)</Label>
-              <select
-                id="import_batch"
-                value={batchId}
-                onChange={(e) => setBatchId(e.target.value)}
-                className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2 text-sm"
-              >
-                <option value="">— Chưa chọn —</option>
-                {batches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="import_department">Phòng ban</Label>
-                <select
-                  id="import_department"
-                  value={departmentId}
-                  onChange={(e) => setDepartmentId(e.target.value)}
-                  className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2 text-sm"
-                >
-                  <option value="">—</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="import_mentor">Mentor</Label>
-                <select
-                  id="import_mentor"
-                  value={mentorId}
-                  onChange={(e) => setMentorId(e.target.value)}
-                  className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2 text-sm"
-                >
-                  <option value="">—</option>
-                  {mentors.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+            {step === 1 ? (
+              <>
+                {rows.length ? (
+                  <div className="flex flex-col gap-2">
+                    <Label>Xem trước (5 dòng đầu)</Label>
+                    <div className="overflow-hidden rounded-lg border text-xs">
+                      <table className="w-full">
+                        <thead className="bg-muted">
+                          <tr>
+                            <th className="px-2 py-1 text-left">Mã SV</th>
+                            <th className="px-2 py-1 text-left">Họ tên</th>
+                            <th className="px-2 py-1 text-left">Email</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.slice(0, 5).map((r, i) => (
+                            <tr key={i} className="border-t">
+                              <td className="px-2 py-1">{r.student_code || "—"}</td>
+                              <td className="px-2 py-1">{r.full_name || "—"}</td>
+                              <td className="px-2 py-1">{r.email || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                ) : null}
 
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={strict} onChange={(e) => setStrict(e.target.checked)} />
-              Chế độ nghiêm ngặt: nếu có lỗi thì không import dòng nào
-            </label>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="import_batch">Gán vào đợt thực tập *</Label>
+                  <select
+                    id="import_batch"
+                    value={batchId}
+                    onChange={(e) => setBatchId(e.target.value)}
+                    className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2 text-sm"
+                  >
+                    <option value="">— Chưa chọn —</option>
+                    {batches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="import_department">Phòng ban</Label>
+                    <select
+                      id="import_department"
+                      value={departmentId}
+                      onChange={(e) => setDepartmentId(e.target.value)}
+                      className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2 text-sm"
+                    >
+                      <option value="">—</option>
+                      {departments.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <Label htmlFor="import_mentor">Mentor</Label>
+                    <select
+                      id="import_mentor"
+                      value={mentorId}
+                      onChange={(e) => setMentorId(e.target.value)}
+                      className="flex h-8 w-full items-center rounded-lg border border-input bg-transparent px-2 text-sm"
+                    >
+                      <option value="">—</option>
+                      {mentors.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
 
-            {result ? (
-              <div className="rounded-lg border p-3 text-sm">
-                <p>Tổng: {rows.length} · Thành công: {result.imported ?? 0} · Lỗi: {result.failed?.length ?? 0}</p>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={strict} onChange={(e) => setStrict(e.target.checked)} />
+                  Chế độ nghiêm ngặt: nếu có lỗi thì không import dòng nào
+                </label>
+
+                <DialogFooter className="flex-row gap-2 pt-2">
+                  <Button variant="outline" onClick={() => setStep(0)}>
+                    Quay lại
+                  </Button>
+                  <Button onClick={handleImport} disabled={busy || !rows.length || !batchId}>
+                    <Upload className="size-4" />
+                    {busy ? "Đang import..." : `Import ${rows.length} dòng`}
+                  </Button>
+                </DialogFooter>
+              </>
+            ) : null}
+
+            {step === 2 && result ? (
+              <>
+                <div
+                  className={
+                    result.error && !result.imported
+                      ? "rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm"
+                      : "rounded-lg border border-emerald-600/30 bg-emerald-500/5 p-4 text-sm"
+                  }
+                >
+                  <p className="font-semibold">
+                    {result.imported
+                      ? `Đã import ${result.imported} thực tập sinh.`
+                      : "Import không thành công."}
+                  </p>
+                  <p className="mt-1 text-muted-foreground">
+                    Tổng: {rows.length} · Thành công: {result.imported ?? 0} · Lỗi:{" "}
+                    {result.failed?.length ?? 0}
+                  </p>
+                  {result.error ? (
+                    <p className="mt-1 text-destructive">{result.error}</p>
+                  ) : null}
+                </div>
                 {result.failed?.length ? (
-                  <Button size="sm" variant="outline" className="mt-2" onClick={downloadErrorReport}>
+                  <Button size="sm" variant="outline" onClick={downloadErrorReport}>
                     Tải báo cáo lỗi
                   </Button>
                 ) : null}
-              </div>
+                <DialogFooter className="flex-row gap-2 pt-2">
+                  <Button variant="outline" onClick={reset}>
+                    Import file khác
+                  </Button>
+                  <Button onClick={() => handleOpen(false)}>Hoàn tất</Button>
+                </DialogFooter>
+              </>
             ) : null}
-
-            <SheetFooter className="pt-2">
-              <Button onClick={handleImport} disabled={busy || !rows.length || !batchId}>
-                <Upload className="size-4" />
-                {busy ? "Đang import..." : `Import ${rows.length} dòng`}
-              </Button>
-            </SheetFooter>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

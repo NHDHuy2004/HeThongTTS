@@ -5,10 +5,13 @@ import 'package:flutter/material.dart';
 import '../../core/current_user.dart';
 import '../../core/realtime.dart';
 import '../../core/supabase.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/error_view.dart';
 import '../../shared/format.dart';
+import '../../shared/skeleton.dart';
 import '../../shared/status_pill.dart';
 import '../notifications/notifications_screen.dart';
+import '../mentors/mentor_interns_screen.dart';
 import '../reports/reports_screen.dart';
 import '../requests/requests_screen.dart';
 
@@ -169,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: const BoxDecoration(
-                        color: Colors.red,
+                        color: AppColors.danger,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -194,7 +197,7 @@ class _DashboardScreenState extends State<DashboardScreen>
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonListView(itemCount: 5)
           : _error != null
               ? ErrorView(message: _error!, onRetry: _load)
               : RefreshIndicator(
@@ -293,6 +296,12 @@ class _DashboardScreenState extends State<DashboardScreen>
       Text('Thao tác nhanh', style: Theme.of(context).textTheme.titleMedium),
       const SizedBox(height: 4),
       _QuickAction(
+        icon: Icons.group_outlined,
+        title: 'Intern phụ trách',
+        subtitle: 'Danh sách thực tập sinh được phân công',
+        onTap: () => _push(const MentorInternsScreen()),
+      ),
+      _QuickAction(
         icon: Icons.fact_check,
         title: 'Duyệt báo cáo',
         subtitle: 'Báo cáo đang chờ duyệt',
@@ -353,7 +362,7 @@ class _QuickAction extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.subtitle,
-    required this.badge,
+    this.badge = 0,
     required this.onTap,
   });
 

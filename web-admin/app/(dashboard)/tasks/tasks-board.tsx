@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Columns3, List } from "lucide-react";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,7 +13,8 @@ import { DataTable, type Column } from "@/components/data-table";
 import { StatusBadge } from "@/components/status-badge";
 import { assignmentTypeLabel, formatDateTime } from "@/features/labels";
 import { cn } from "@/lib/utils";
-import { TaskStatusControl } from "./task-status";
+import { updateTaskStatus } from "./task-actions";
+import { TASK_STEPS, TaskStatusControl } from "./task-status";
 
 export type BoardTask = {
   id: string;
@@ -33,8 +36,33 @@ const COLUMNS: { value: string; label: string; accent: string }[] = [
   { value: "cancelled", label: "ĐÃ HỦY", accent: "bg-muted/60" },
 ];
 
-export function TasksBoard({ tasks }: { tasks: BoardTask[] }) {
+export function TasksBoard({
+  tasks,
+  canManage = true,
+}: {
+  tasks: BoardTask[];
+  /** Intern chỉ xem Kanban — không kéo thả (server cũng chặn completed/cancelled). */
+  canManage?: boolean;
+}) {
   const [view, setView] = useState<"list" | "kanban">("list");
+  const [dragOver, setDragOver] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  function onDrop(status: string, taskId: string) {
+    setDragOver(null);
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || (task.status ?? "not_started") === status) return;
+    startTransition(async () => {
+      const { error } = await updateTaskStatus(taskId, status);
+      if (error) toast.error("Không thể chuyển trạng thái. Vui lòng thử lại.");
+      else {
+        const label = TASK_STEPS.find((s) => s.value === status)?.label ?? status;
+        toast.success(`Đã chuyển "${task.title}" sang "${label}".`);
+        router.refresh();
+      }
+    });
+  }
 
   const listColumns: Column<BoardTask>[] = [
     {
@@ -111,9 +139,21 @@ export function TasksBoard({ tasks }: { tasks: BoardTask[] }) {
             return (
               <div
                 key={col.value}
+                onDragOver={(e) => {
+                  if (!canManage) return;
+                  e.preventDefault();
+                  setDragOver(col.value);
+                }}
+                onDragLeave={() => setDragOver((v) => (v === col.value ? null : v))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const taskId = e.dataTransfer.getData("text/task-id");
+                  if (taskId) onDrop(col.value, taskId);
+                }}
                 className={cn(
-                  "flex min-h-[180px] flex-col gap-3 rounded-xl p-3",
+                  "flex min-h-[180px] flex-col gap-3 rounded-xl p-3 transition-colors",
                   col.accent,
+                  canManage && dragOver === col.value && "ring-2 ring-emerald-600/50",
                 )}
               >
                 <div className="flex items-center justify-between px-1">
@@ -121,29 +161,45 @@ export function TasksBoard({ tasks }: { tasks: BoardTask[] }) {
                   <Badge variant="secondary">{colTasks.length}</Badge>
                 </div>
                 {colTasks.length === 0 ? (
-                  <p className="px-1 text-xs text-muted-foreground">Chưa có task nào.</p>
+                  <p className="px-1 text-xs text-muted-foreground">
+                    {canManage ? "Kéo task vào đây." : "Chưa có task nào."}
+                  </p>
                 ) : (
                   colTasks.map((task) => (
-                    <Link key={task.id} href={`/tasks/${task.id}`}>
-                      <Card className="shadow-sm transition-shadow hover:shadow-md">
-                        <CardHeader className="p-3 pb-1">
-                          <CardTitle className="text-sm leading-snug">{task.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-2 p-3 pt-1">
-                          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                            <span className="truncate">
-                              {task.assigneeNames.length > 0
-                                ? task.assigneeNames.join(", ")
-                                : task.interns}
-                            </span>
-                            <StatusBadge value={task.priority ?? "medium"} />
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Hạn: {formatDateTime(task.deadline)}
-                          </p>
-                        </CardContent>
-                      </Card>
-                    </Link>
+                    <Card
+                      key={task.id}
+                      draggable={canManage && !pending}
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("text/task-id", task.id);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      className={cn(
+                        "shadow-sm transition-shadow hover:shadow-md",
+                        canManage && "cursor-grab active:cursor-grabbing",
+                        pending && "opacity-60",
+                      )}
+                    >
+                      <CardHeader className="p-3 pb-1">
+                        <CardTitle className="text-sm leading-snug">
+                          <Link href={`/tasks/${task.id}`} className="hover:underline">
+                            {task.title}
+                          </Link>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-2 p-3 pt-1">
+                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                          <span className="truncate">
+                            {task.assigneeNames.length > 0
+                              ? task.assigneeNames.join(", ")
+                              : task.interns}
+                          </span>
+                          <StatusBadge value={task.priority ?? "medium"} />
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Hạn: {formatDateTime(task.deadline)}
+                        </p>
+                      </CardContent>
+                    </Card>
                   ))
                 )}
               </div>

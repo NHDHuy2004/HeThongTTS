@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { Download } from "lucide-react";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { AttendanceTable, type AttendanceRowView } from "./attendance-table";
 
@@ -52,13 +52,7 @@ export default async function AttendancePage() {
         }
         actions={
           role === "admin" || role === "hr" ? (
-            <a
-              href="/api/exports/attendance"
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-            >
-              <Download className="size-4" />
-              Xuất CSV
-            </a>
+            <ExportCsvButton href="/api/exports/attendance" />
           ) : undefined
         }
       />

@@ -1,5 +1,5 @@
-import { Download } from "lucide-react";
-
+import { ExportCsvButton } from "@/components/export-csv-button";
+import { MigrationNotice } from "@/components/migration-notice";
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/page-header";
@@ -12,6 +12,7 @@ import {
 export default async function InternRequestsPage() {
   const session = await requireAuth();
   const userId = session.user.id;
+  const role = session.profile?.role_code ?? "intern";
   const supabase = await createClient();
 
   const [requestsRes, typesRes] = await Promise.all([
@@ -48,22 +49,15 @@ export default async function InternRequestsPage() {
       <PageHeader
         title="Đơn từ của tôi"
         description="Tạo và theo dõi các đơn nghỉ phép, làm từ xa, đi muộn..."
-        actions={
-          <a
-            href="/api/exports/requests"
-            className="inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent"
-          >
-            <Download className="size-4" />
-            Xuất CSV
-          </a>
-        }
+        actions={<ExportCsvButton href="/api/exports/requests" />}
       />
 
       {migrationMissing ? (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm">
-          Chưa tìm thấy bảng <code>requests</code> — hãy chạy migration{" "}
-          <code>0017_requests_management.sql</code> trong Supabase Dashboard.
-        </div>
+        <MigrationNotice
+          role={role}
+          table="requests"
+          migration="0017_requests_management.sql"
+        />
       ) : null}
 
       <div className="flex justify-end">

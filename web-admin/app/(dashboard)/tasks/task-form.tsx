@@ -11,13 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { deliverablesList } from "@/features/labels";
 import { cn } from "@/lib/utils";
 import { createTask, type TaskFormState } from "./task-actions";
@@ -62,14 +62,14 @@ export function TaskForm({ internships }: { internships: Option[] }) {
         <Plus className="size-4" />
         Giao việc
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Giao công việc</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Giao công việc</DialogTitle>
+            <DialogDescription>
               Tạo task cá nhân hoặc task nhóm với sub-task, deliverable và file đính kèm.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 py-4">
             {/* Assignment type */}
             <div className="grid grid-cols-2 gap-3">
@@ -251,14 +251,14 @@ export function TaskForm({ internships }: { internships: Option[] }) {
               </p>
             ) : null}
 
-            <SheetFooter className="pt-2">
+            <DialogFooter className="pt-2">
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

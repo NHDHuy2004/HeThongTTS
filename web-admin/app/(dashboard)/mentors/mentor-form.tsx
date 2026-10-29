@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type DepartmentOption = { id: string; name: string };
 
@@ -63,14 +63,14 @@ export function MentorForm({
         <Plus className="size-4" />
         {triggerLabel}
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md">
-          <SheetHeader>
-            <SheetTitle>Thêm mentor</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Thêm mentor</DialogTitle>
+            <DialogDescription>
               Tạo hồ sơ người hướng dẫn mới.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={onSubmit} className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="employee_code">Mã nhân viên</Label>
@@ -113,14 +113,14 @@ export function MentorForm({
                 defaultValue={10}
               />
             </div>
-            <SheetFooter className="pt-2">
+            <DialogFooter className="pt-2">
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createIntern, type InternFormState } from "./actions";
 
 type Option = { id: string; name: string };
@@ -57,14 +57,14 @@ export function InternForm({
         <Plus className="size-4" />
         Thêm thực tập sinh
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Thêm thực tập sinh</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Thêm thực tập sinh</DialogTitle>
+            <DialogDescription>
               Tạo hồ sơ mới, có thể kèm tài khoản đăng nhập.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 py-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-2">
@@ -219,14 +219,14 @@ export function InternForm({
               </p>
             ) : null}
 
-            <SheetFooter className="pt-2">
+            <DialogFooter className="pt-2">
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

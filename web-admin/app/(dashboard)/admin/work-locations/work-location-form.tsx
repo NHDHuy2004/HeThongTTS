@@ -9,14 +9,15 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import type { AttendanceLocationsRow } from "@/types/database";
 import { LocationMapPicker } from "./location-map-picker";
 
@@ -158,15 +159,15 @@ export function WorkLocationForm({
           <MapPin /> Thêm địa điểm
         </Button>
       )}
-      <Sheet open={open} onOpenChange={openForm}>
-        <SheetContent className="w-full max-w-2xl overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>{editing ? "Sửa địa điểm" : "Thêm địa điểm làm việc"}</SheetTitle>
-            <SheetDescription>
+      <Dialog open={open} onOpenChange={openForm}>
+        <DialogContent className="max-w-2xl overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? "Sửa địa điểm" : "Thêm địa điểm làm việc"}</DialogTitle>
+            <DialogDescription>
               Địa điểm có tọa độ GPS và bán kính điểm danh. Thực tập sinh chỉ điểm
               danh được khi ở trong bán kính cho phép.
-            </SheetDescription>
-          </SheetHeader>
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={onSubmit} className="flex flex-col gap-4 px-4 pb-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="flex flex-col gap-2">
@@ -336,14 +337,14 @@ export function WorkLocationForm({
               Địa điểm đang hoạt động
             </label>
 
-            <SheetFooter>
+            <DialogFooter>
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : editing ? "Cập nhật" : "Tạo địa điểm"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -379,9 +380,16 @@ export function DeleteWorkLocation({ id, name }: { id: string; name: string }) {
   const router = useRouter();
   const supabase = React.useMemo(() => createClient(), []);
   const [pending, setPending] = React.useState(false);
+  const [confirm, confirmDialog] = useConfirm();
 
   async function remove() {
-    if (!window.confirm(`Xóa địa điểm "${name}"? Hành động này không thể hoàn tác.`)) return;
+    const ok = await confirm({
+      title: `Xóa địa điểm "${name}"?`,
+      description: "Hành động này không thể hoàn tác.",
+      confirmLabel: "Xóa",
+      destructive: true,
+    });
+    if (!ok) return;
     setPending(true);
     const { error } = await supabase.from("attendance_locations").delete().eq("id", id);
     setPending(false);
@@ -398,14 +406,17 @@ export function DeleteWorkLocation({ id, name }: { id: string; name: string }) {
   }
 
   return (
-    <Button
-      variant="destructive"
-      size="sm"
-      onClick={remove}
-      disabled={pending}
-      aria-label={`Xóa ${name}`}
-    >
-      Xóa
-    </Button>
+    <>
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={remove}
+        disabled={pending}
+        aria-label={`Xóa ${name}`}
+      >
+        Xóa
+      </Button>
+      {confirmDialog}
+    </>
   );
 }

@@ -1,23 +1,26 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+
+/// Bảng màu trạng thái — cùng tông với web-admin (emerald/orange/red...).
 const statusColors = <String, Color>{
-  'present': Colors.green,
-  'approved': Colors.green,
-  'completed': Colors.green,
-  'done': Colors.green,
-  'active': Colors.green,
-  'in_review': Colors.orange,
-  'submitted': Colors.orange,
-  'late': Colors.orange,
-  'pending': Colors.orange,
-  'needs_revision': Colors.deepOrange,
-  'in_progress': Colors.blue,
-  'changes_requested': Colors.deepOrange,
-  'not_started': Colors.blueGrey,
-  'rejected': Colors.red,
-  'cancelled': Colors.grey,
-  'draft': Colors.blueGrey,
-  'absent': Colors.red,
+  'present': AppColors.success,
+  'approved': AppColors.success,
+  'completed': AppColors.success,
+  'done': AppColors.success,
+  'active': AppColors.success,
+  'in_review': AppColors.warning,
+  'submitted': AppColors.warning,
+  'late': AppColors.warning,
+  'pending': AppColors.warning,
+  'needs_revision': AppColors.accent,
+  'in_progress': AppColors.info,
+  'changes_requested': AppColors.accent,
+  'not_started': AppColors.neutral,
+  'rejected': AppColors.danger,
+  'cancelled': AppColors.neutral,
+  'draft': AppColors.neutral,
+  'absent': AppColors.danger,
 };
 
 const statusLabels = <String, String>{
@@ -38,7 +41,6 @@ const statusLabels = <String, String>{
   'approved': 'Đã duyệt',
   'rejected': 'Từ chối',
   'cancelled': 'Đã hủy',
-  'submitted': 'Đã gửi',
   'draft': 'Nháp',
   'high': 'Cao',
   'medium': 'TB',
@@ -46,6 +48,7 @@ const statusLabels = <String, String>{
   'urgent': 'Khẩn',
 };
 
+/// Pill trạng thái: nền màu 12% + chữ màu đậm — dễ quét mắt trên mọi nền thẻ.
 class StatusPill extends StatelessWidget {
   const StatusPill({super.key, required this.status});
 
@@ -53,12 +56,22 @@ class StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      (statusLabels[status] ?? status).toUpperCase(),
-      style: TextStyle(
-        color: statusColors[status] ?? Colors.blueGrey,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
+    final color = statusColors[status] ?? AppColors.neutral;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Text(
+        statusLabels[status] ?? status,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          height: 1.2,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

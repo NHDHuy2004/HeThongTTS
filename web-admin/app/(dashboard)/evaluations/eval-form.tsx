@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { createEvaluation, type EvalFormState } from "./evaluation-actions";
 
 type Option = { id: string; name: string };
@@ -48,12 +48,12 @@ export function EvalForm({ internships }: { internships: Option[] }) {
         <Plus className="size-4" />
         Tạo đánh giá
       </Button>
-      <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent className="w-full max-w-md overflow-y-auto">
-          <SheetHeader>
-            <SheetTitle>Tạo đánh giá</SheetTitle>
-            <SheetDescription>Tạo phiếu đánh giá cho thực tập sinh.</SheetDescription>
-          </SheetHeader>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-md overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tạo đánh giá</DialogTitle>
+            <DialogDescription>Tạo phiếu đánh giá cho thực tập sinh.</DialogDescription>
+          </DialogHeader>
           <form action={formAction} className="flex flex-col gap-4 py-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="internship_id">Intern</Label>
@@ -102,14 +102,14 @@ export function EvalForm({ internships }: { internships: Option[] }) {
               </p>
             ) : null}
 
-            <SheetFooter className="pt-2">
+            <DialogFooter className="pt-2">
               <Button type="submit" disabled={pending}>
                 {pending ? "Đang lưu..." : "Lưu"}
               </Button>
-            </SheetFooter>
+            </DialogFooter>
           </form>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
