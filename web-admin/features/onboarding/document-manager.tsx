@@ -180,14 +180,14 @@ function DocumentUploader({ document, recordId, disabled }: {
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <input ref={inputRef} type="file" className="hidden" accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx" onChange={(event) => {
+      <input ref={inputRef} type="file" className="hidden" accept=".pdf,.png,.jpg,.jpeg,.txt,.doc,.docx,.xls,.xlsx" onChange={(event) => {
         const file = event.target.files?.[0];
         if (file) upload(file);
       }} />
       <Button size="sm" disabled={pending || disabled} onClick={() => inputRef.current?.click()}>
         <Upload />{pending ? "Đang nộp..." : document.status === "needs_revision" ? "Nộp bản sửa" : "Tải tệp lên"}
       </Button>
-      <span className="text-xs text-muted-foreground">PDF, DOCX, DOC, JPG, PNG hoặc TXT · tối đa 10 MB</span>
+      <span className="text-xs text-muted-foreground">PDF, DOCX, DOC, XLSX, JPG, PNG hoặc TXT · tối đa 10 MB</span>
     </div>
   );
 }

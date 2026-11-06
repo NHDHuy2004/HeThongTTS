@@ -32,33 +32,43 @@ export default async function TaskDetailPage({
   const { data: task, error } = await supabase
     .from("tasks")
     .select(
-      "*, internships(id, interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
+      "*, internships(id, intern_id, interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
     )
     .eq("id", id)
     .maybeSingle();
 
   if (error || !task) notFound();
 
-  const { data: reviewsData = [] } = await supabase
-    .from("task_reviews")
-    .select("*")
-    .eq("task_id", id)
-    .order("reviewed_at", { ascending: false });
-  const reviews = reviewsData ?? [];
-
-  const submissionsData =
-    await supabase.from("task_submissions")
-      .select("*, task_submission_files(*), task_submission_links(*)")
-      .eq("task_id", id)
-      .order("submitted_at", { ascending: false });
-  const submissions = submissionsData.data ?? [];
-
-  const subtasksData =
-    await supabase.from("task_subtasks")
+  const [
+    { data: reviewsData = [] },
+    { data: submissionsData = [] },
+    { data: subtasksData = [] },
+    { data: attachmentsData = [] },
+  ] = await Promise.all([
+    supabase
+      .from("task_reviews")
       .select("*")
       .eq("task_id", id)
-      .order("created_at", { ascending: true });
-  const subtasks = subtasksData.data ?? [];
+      .order("reviewed_at", { ascending: false }),
+    supabase
+      .from("task_submissions")
+      .select("*, task_submission_files(*), task_submission_links(*)")
+      .eq("task_id", id)
+      .order("submitted_at", { ascending: false }),
+    supabase
+      .from("task_subtasks")
+      .select("*")
+      .eq("task_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("task_attachments")
+      .select("*")
+      .eq("task_id", id)
+      .order("created_at", { ascending: true }),
+  ]);
+  const reviews = reviewsData ?? [];
+  const submissions = submissionsData ?? [];
+  const subtasks = subtasksData ?? [];
 
   const personIds = Array.from(
     new Set([
@@ -70,14 +80,10 @@ export default async function TaskDetailPage({
     ? await supabase.from("profiles").select("id, full_name").in("id", personIds)
     : { data: [] };
   const profiles = profilesData ?? [];
-  const nameOf = (uid: string | null) =>
-    uid ? profiles.find((p) => p.id === uid)?.full_name ?? "—" : "—";
+  const profileNames = Object.fromEntries(
+    profiles.map((profile) => [profile.id, profile.full_name]),
+  );
 
-  const { data: attachmentsData = [] } = await supabase
-    .from("task_attachments")
-    .select("*")
-    .eq("task_id", id)
-    .order("created_at", { ascending: true });
   const attachments = attachmentsData ?? [];
 
   const signed = await Promise.all(
@@ -91,26 +97,32 @@ export default async function TaskDetailPage({
 
   const assignees = task.task_assignees ?? [];
 
-  // Intern hiện tại (để lọc phần việc của họ)
-  let myInternId: string | null = null;
-  if (role === "intern") {
-    const { data: me } = await supabase
-      .from("interns")
-      .select("id")
-      .eq("user_id", session.profile?.id ?? "")
-      .maybeSingle();
-    myInternId = me?.id ?? null;
-  }
+  const { data: me } =
+    role === "intern"
+      ? await supabase
+          .from("interns")
+          .select("id")
+          .eq("user_id", session.profile?.id ?? "")
+          .maybeSingle()
+      : { data: null };
+  const myInternId = me?.id ?? null;
+  const canSubmit =
+    role === "intern" &&
+    Boolean(myInternId) &&
+    (task.internships?.intern_id === myInternId ||
+      assignees.some((assignee) => assignee.intern_id === myInternId));
 
   // Thống kê theo từng intern trên chính task này
+  const assigneeNames = new Map(
+    assignees.map((assignee) => [assignee.intern_id, assignee.interns?.full_name ?? "—"]),
+  );
   const perIntern = new Map<
     string,
     { name: string; total: number; completed: number; inProgress: number; overdue: number; changes: number }
   >();
   for (const s of subtasks) {
     if (!s.assignee_id) continue;
-    const name =
-      assignees.find((a) => a.intern_id === s.assignee_id)?.interns?.full_name ?? "—";
+    const name = assigneeNames.get(s.assignee_id) ?? "—";
     const cur = perIntern.get(s.assignee_id) ?? {
       name, total: 0, completed: 0, inProgress: 0, overdue: 0, changes: 0,
     };
@@ -282,16 +294,16 @@ export default async function TaskDetailPage({
         taskId={id}
         submissions={submissions}
         subtasks={subtasks}
-        nameOf={nameOf}
+        profileNames={profileNames}
         canManage={canManage}
-        isIntern={role === "intern"}
+        canSubmit={canSubmit}
       />
 
       <ReviewsPanel
         taskId={id}
         reviews={reviews}
         submissions={submissions}
-        nameOf={nameOf}
+        profileNames={profileNames}
         canReview={canReview}
       />
     </div>

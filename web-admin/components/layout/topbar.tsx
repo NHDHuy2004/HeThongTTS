@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -67,13 +68,15 @@ export function Topbar({
             }
           />
           <DropdownMenuContent align="end" className="w-60">
-            <DropdownMenuLabel>
-              <p className="truncate text-sm font-semibold">{user.full_name}</p>
-              <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-              <span className="mt-1.5 inline-flex items-center px-1.5 py-0.2 text-[10px] font-semibold rounded-md bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-300">
-                {roleLabel[user.role] ?? user.role}
-              </span>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <p className="truncate text-sm font-semibold">{user.full_name}</p>
+                <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                <span className="mt-1.5 inline-flex items-center px-1.5 py-0.2 text-[10px] font-semibold rounded-md bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-300">
+                  {roleLabel[user.role] ?? user.role}
+                </span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => {

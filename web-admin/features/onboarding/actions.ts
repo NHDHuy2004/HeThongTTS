@@ -717,6 +717,8 @@ export async function finalizeCatalogDocumentUpload(input: {
       "text/plain",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
     if (!allowed.includes(input.mimeType)) return { error: "Định dạng tệp không được phép." };
     const supabase = await createClient();
