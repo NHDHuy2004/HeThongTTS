@@ -68,7 +68,16 @@ function CatalogDocumentRow({ document }: { document: CatalogDocument }) {
       toast.error("Tệp vượt quá giới hạn 10 MB.");
       return;
     }
-    const allowed = ["application/pdf", "image/png", "image/jpeg", "text/plain", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+    const allowed = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    ];
     if (!allowed.includes(file.type)) {
       toast.error("Định dạng tệp không được phép.");
       return;
@@ -111,7 +120,7 @@ function CatalogDocumentRow({ document }: { document: CatalogDocument }) {
       <div><p className="text-sm font-medium">{document.name}</p><p className="text-xs text-muted-foreground">{document.document_type ?? "Chưa phân loại"}</p></div>
       <div className="flex items-center gap-2">
         {document.file_path || document.file_url ? <Button size="sm" variant="outline" onClick={open}>Mở tệp</Button> : null}
-        <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.txt" onChange={(event) => { const file = event.target.files?.[0]; if (file) upload(file); }} />
+        <input ref={inputRef} type="file" className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg,.txt" onChange={(event) => { const file = event.target.files?.[0]; if (file) upload(file); }} />
         <Button size="sm" disabled={pending} onClick={() => inputRef.current?.click()}><FileUp />{pending ? "Đang tải..." : document.file_path ? "Thay tệp" : "Tải tệp"}</Button>
       </div>
     </div>

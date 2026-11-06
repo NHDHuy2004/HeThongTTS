@@ -51,7 +51,7 @@ export default async function TaskDetailPage({
     supabase
       .from("tasks")
       .select(
-        "*, internships(id, interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
+        "*, internships(id, intern_id, interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
       )
       .eq("id", id)
       .maybeSingle(),
@@ -96,8 +96,9 @@ export default async function TaskDetailPage({
     ? await supabase.from("profiles").select("id, full_name").in("id", personIds)
     : { data: [] };
   const profiles = profilesData ?? [];
-  const nameOf = (uid: string | null) =>
-    uid ? profiles.find((p) => p.id === uid)?.full_name ?? "—" : "—";
+  const profileNames = Object.fromEntries(
+    profiles.map((profile) => [profile.id, profile.full_name]),
+  );
 
   const signed = await Promise.all(
     attachments.map(async (a) =>
@@ -112,16 +113,23 @@ export default async function TaskDetailPage({
 
   // Intern hiện tại (để lọc phần việc của họ)
   const myInternId: string | null = meRes.data?.id ?? null;
+  const canSubmit =
+    role === "intern" &&
+    Boolean(myInternId) &&
+    (task.internships?.intern_id === myInternId ||
+      assignees.some((assignee) => assignee.intern_id === myInternId));
 
   // Thống kê theo từng intern trên chính task này
+  const assigneeNames = new Map(
+    assignees.map((assignee) => [assignee.intern_id, assignee.interns?.full_name ?? "—"]),
+  );
   const perIntern = new Map<
     string,
     { name: string; total: number; completed: number; inProgress: number; overdue: number; changes: number }
   >();
   for (const s of subtasks) {
     if (!s.assignee_id) continue;
-    const name =
-      assignees.find((a) => a.intern_id === s.assignee_id)?.interns?.full_name ?? "—";
+    const name = assigneeNames.get(s.assignee_id) ?? "—";
     const cur = perIntern.get(s.assignee_id) ?? {
       name, total: 0, completed: 0, inProgress: 0, overdue: 0, changes: 0,
     };
@@ -293,16 +301,16 @@ export default async function TaskDetailPage({
         taskId={id}
         submissions={submissions}
         subtasks={subtasks}
-        nameOf={nameOf}
+        profileNames={profileNames}
         canManage={canManage}
-        isIntern={role === "intern"}
+        canSubmit={canSubmit}
       />
 
       <ReviewsPanel
         taskId={id}
         reviews={reviews}
         submissions={submissions}
-        nameOf={nameOf}
+        profileNames={profileNames}
         canReview={canReview}
       />
     </div>

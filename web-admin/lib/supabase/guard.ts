@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "@/types/database";
+import { getSupabasePublicConfig } from "./env";
 
 const protectedPaths = new Set([
   "/dashboard",
@@ -25,10 +26,11 @@ export async function updateSession(request: NextRequest) {
 
   try {
     supabaseResponse = NextResponse.next({ request });
+    const { url, key } = getSupabasePublicConfig();
 
     const supabase = createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      url,
+      key,
       {
         cookies: {
           getAll() {

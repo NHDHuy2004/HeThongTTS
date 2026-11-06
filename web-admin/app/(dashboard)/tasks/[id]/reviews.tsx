@@ -47,13 +47,13 @@ export function ReviewsPanel({
   taskId,
   reviews,
   submissions,
-  nameOf,
+  profileNames,
   canReview,
 }: {
   taskId: string;
   reviews: ReviewRow[];
   submissions: { id: string; submission_no: number }[];
-  nameOf: (id: string | null) => string;
+  profileNames: Record<string, string>;
   canReview: boolean;
 }) {
   const [showForm, setShowForm] = React.useState(false);
@@ -228,7 +228,7 @@ export function ReviewsPanel({
                       </div>
                     ) : null}
                     <span className="text-xs text-muted-foreground">
-                      {nameOf(r.reviewer_id)} · {formatDateTime(r.reviewed_at)}
+                      {profileNames[r.reviewer_id] ?? "—"} · {formatDateTime(r.reviewed_at)}
                     </span>
                   </div>
                 </div>

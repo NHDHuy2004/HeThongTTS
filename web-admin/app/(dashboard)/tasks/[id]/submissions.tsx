@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
+import { getSupabasePublicConfig } from "@/lib/supabase/env";
 import { formatDateTime } from "@/features/labels";
 import { validateTaskFile } from "../task-files";
 import type { SubtaskRow } from "./subtasks";
@@ -19,17 +20,17 @@ import type { SubtaskRow } from "./subtasks";
 async function uploadToStorageWithProgress(
   path: string,
   file: File,
+  supabaseUrl: string,
+  key: string,
+  token: string,
   onProgress: (pct: number) => void,
 ): Promise<{ error?: string }> {
-  const supabase = createClient();
-  const { data: sessionData } = await supabase.auth.getSession();
-  const token = sessionData.session?.access_token ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const url = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/task-submissions/${path}`;
+  const url = `${supabaseUrl}/storage/v1/object/task-submissions/${path}`;
 
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url);
-    xhr.setRequestHeader("apikey", process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    xhr.setRequestHeader("apikey", key);
     xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
     xhr.setRequestHeader("x-upsert", "false");
@@ -64,16 +65,16 @@ export function SubmissionsPanel({
   taskId,
   submissions,
   subtasks,
-  nameOf,
+  profileNames,
   canManage,
-  isIntern,
+  canSubmit,
 }: {
   taskId: string;
   submissions: SubmissionRow[];
   subtasks: subtasksType;
-  nameOf: (id: string | null) => string;
+  profileNames: Record<string, string>;
   canManage: boolean;
-  isIntern: boolean;
+  canSubmit: boolean;
 }) {
   const [showForm, setShowForm] = React.useState(false);
   const [links, setLinks] = React.useState([{ title: "", url: "" }]);
@@ -116,6 +117,12 @@ export function SubmissionsPanel({
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
       if (!userId) throw new Error("Chưa đăng nhập.");
+      if (!canSubmit) {
+        throw new Error("Bạn không được phân công vào task này nên không thể nộp bài.");
+      }
+      const { data: sessionData } = await supabase.auth.getSession();
+      const { url: supabaseUrl, key } = getSupabasePublicConfig();
+      const token = sessionData.session?.access_token ?? key;
 
       // submission_no
       const { data: last } = await supabase
@@ -142,7 +149,12 @@ export function SubmissionsPanel({
         })
         .select("id")
         .single();
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.code === "42501") {
+          throw new Error("Bạn không được phân công vào task này nên không thể nộp bài.");
+        }
+        throw new Error(error.message);
+      }
 
       // Links
       const validLinks = links.filter((l) => l.url.trim());
@@ -167,7 +179,7 @@ export function SubmissionsPanel({
         // eslint-disable-next-line react-hooks/purity
         const path = `${taskId}/${submission.id}/${kind}/${Date.now()}-${safeName}`;
         setUploads((u) => ({ ...u, [f.name]: { progress: 0, status: "uploading" } }));
-        const result = await uploadToStorageWithProgress(path, f, (pct) =>
+        const result = await uploadToStorageWithProgress(path, f, supabaseUrl, key, token, (pct) =>
           setUploads((u) => ({ ...u, [f.name]: { progress: pct, status: "uploading" } })),
         );
         if (result.error) {
@@ -204,7 +216,7 @@ export function SubmissionsPanel({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="text-sm">Nộp bài &amp; lịch sử ({submissions.length})</CardTitle>
-        {isIntern ? (
+        {canSubmit ? (
           <Button size="xs" variant="outline" onClick={() => setShowForm((v) => !v)}>
             <Plus className="size-4" />
             Nộp bài
@@ -378,14 +390,14 @@ export function SubmissionsPanel({
 
         {submissions.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            Chưa có bài nộp nào. {isIntern ? "Hãy nộp bài để được đánh giá." : ""}
+            Chưa có bài nộp nào. {canSubmit ? "Hãy nộp bài để được đánh giá." : ""}
           </p>
         ) : (
           submissions.map((s, idx) => (
             <div key={s.id} className="flex flex-col gap-2 rounded-lg border p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-sm font-medium">
-                  Lần nộp #{s.submission_no} · {nameOf(s.submitted_by)}
+                  Lần nộp #{s.submission_no} · {profileNames[s.submitted_by] ?? "—"}
                 </span>
                 {idx === 0 && !canManage ? (
                   <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400">

@@ -22,7 +22,7 @@ flowchart LR
 ## 16.3. Vercel (Web Admin)
 
 - Import repo `web-admin/`.
-- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (public — OK), `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` (server-only).
+- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (public — OK), `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY` (server-only). The legacy `NEXT_PUBLIC_SUPABASE_ANON_KEY` name is still supported.
 - Framework preset Next.js; domain production cập nhật vào `additional_redirect_urls` của Supabase Auth.
 - Preview env dùng project `staging`.
 

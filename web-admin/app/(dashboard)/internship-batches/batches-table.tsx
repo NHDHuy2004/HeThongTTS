@@ -4,7 +4,7 @@ import { DataTable, type Column } from "@/components/data-table";
 import { StatusBadge } from "@/components/status-badge";
 import { formatDate } from "@/features/labels";
 import type { InternshipBatchesRow } from "@/types/database";
-import { BatchStatusForm } from "./batch-form";
+import { BatchForm, BatchStatusForm } from "./batch-form";
 
 export type BatchRow = InternshipBatchesRow & {
   profiles: { full_name: string } | null;
@@ -30,7 +30,12 @@ export function BatchesTable({ data }: { data: BatchRow[] }) {
     {
       key: "actions",
       header: "",
-      cell: (r) => <BatchStatusForm id={r.id} status={r.status} />,
+      cell: (r) => (
+        <div className="flex items-center justify-end gap-1">
+          <BatchForm batch={r} />
+          <BatchStatusForm id={r.id} status={r.status} />
+        </div>
+      ),
     },
   ];
 
