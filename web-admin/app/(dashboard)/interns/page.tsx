@@ -18,12 +18,50 @@ export default async function InternsPage() {
 
   let interns: InternRow[] = [];
   if (isManager) {
-    const { data } = await supabase
-      .from("interns")
-      .select("*, internships(internship_batches(name))")
-      .is("deleted_at", null)
-      .order("created_at", { ascending: false });
-    interns = (data ?? []) as InternRow[];
+    // Query chính + các option cho form chạy song song (không phụ thuộc nhau).
+    const [mainRes, batchesRes, departmentsRes, mentorsRes] =
+      await Promise.all([
+        supabase
+          .from("interns")
+          .select("*, internships(internship_batches(name))")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false }),
+        supabase.from("internship_batches").select("id, name").is("deleted_at", null),
+        supabase.from("departments").select("id, name").is("deleted_at", null),
+        supabase.from("mentors").select("id, full_name").is("deleted_at", null),
+      ]);
+    interns = (mainRes.data ?? []) as InternRow[];
+
+    const batches = batchesRes.data ?? [];
+    const departments = departmentsRes.data ?? [];
+    const mentors = mentorsRes.data ?? [];
+
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Thực tập sinh"
+          description="Hồ sơ và phân bổ thực tập sinh vào đợt, phòng ban, mentor"
+          actions={
+            <div className="flex items-center gap-2">
+              <Link href="/interns/import-jobs">
+                <Button variant="ghost">Lịch sử import</Button>
+              </Link>
+              <ImportCsvForm
+                batches={batches}
+                departments={departments}
+                mentors={mentors.map((m) => ({ id: m.id, name: m.full_name }))}
+              />
+              <InternForm
+                batches={batches}
+                departments={departments}
+                mentors={mentors.map((m) => ({ id: m.id, name: m.full_name }))}
+              />
+            </div>
+          }
+        />
+        <InternsTable data={interns} />
+      </div>
+    );
   } else if (role === "mentor") {
     const { data: internships } = await supabase
       .from("internships")
@@ -37,55 +75,18 @@ export default async function InternsPage() {
       if (intern) map.set(intern.id, intern);
     }
     interns = [...map.values()];
+
+    // Mentor chỉ xem bảng — không tải batches/departments/mentors (không dùng).
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Thực tập sinh"
+          description="Hồ sơ và phân bổ thực tập sinh vào đợt, phòng ban, mentor"
+        />
+        <InternsTable data={interns} />
+      </div>
+    );
   } else {
     redirect("/dashboard");
   }
-
-  const { data: batches } = await supabase
-    .from("internship_batches")
-    .select("id, name")
-    .is("deleted_at", null);
-  const { data: departments } = await supabase
-    .from("departments")
-    .select("id, name")
-    .is("deleted_at", null);
-  const { data: mentors } = await supabase
-    .from("mentors")
-    .select("id, full_name")
-    .is("deleted_at", null);
-
-  return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Thực tập sinh"
-        description="Hồ sơ và phân bổ thực tập sinh vào đợt, phòng ban, mentor"
-        actions={
-          isManager ? (
-            <div className="flex items-center gap-2">
-              <Link href="/interns/import-jobs">
-                <Button variant="ghost">Lịch sử import</Button>
-              </Link>
-              <ImportCsvForm
-                batches={batches ?? []}
-                departments={departments ?? []}
-                mentors={(mentors ?? []).map((m) => ({
-                  id: m.id,
-                  name: m.full_name,
-                }))}
-              />
-              <InternForm
-                batches={batches ?? []}
-                departments={departments ?? []}
-                mentors={(mentors ?? []).map((m) => ({
-                  id: m.id,
-                  name: m.full_name,
-                }))}
-              />
-            </div>
-          ) : undefined
-        }
-      />
-      <InternsTable data={interns} />
-    </div>
-  );
 }

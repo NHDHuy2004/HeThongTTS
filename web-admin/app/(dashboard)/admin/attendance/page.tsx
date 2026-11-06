@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
 import { AdminAttendanceTable, type AdminAttendanceRow } from "./admin-attendance-table";
+import { CreateAttendanceButton, type InternshipOption } from "./create-attendance-dialog";
 import {
   VerificationLogsTable,
   type VerificationLogRow,
@@ -17,7 +18,7 @@ export default async function AdminAttendancePage() {
 
   const supabase = await createClient();
 
-  const [attendanceRes, logsRes] = await Promise.all([
+  const [attendanceRes, logsRes, internshipsRes] = await Promise.all([
     supabase
       .from("attendance")
       .select("*, interns(full_name), attendance_locations(name)")
@@ -28,14 +29,47 @@ export default async function AdminAttendancePage() {
       .select("*, profiles(full_name)")
       .order("verified_at", { ascending: false })
       .limit(200),
+    // Danh sách chọn cho form tạo thủ công — RLS tự giới hạn theo vai trò.
+    supabase
+      .from("internships")
+      .select(
+        "id, status, interns(full_name, student_code, email), internship_batches(name)",
+      )
+      .in("status", ["active", "upcoming"])
+      .order("created_at", { ascending: false })
+      .limit(500),
   ]);
+
+  const internshipOptions: InternshipOption[] = ((
+    internshipsRes.data ?? []
+  ) as Record<string, unknown>[]).flatMap((row) => {
+    const intern = row.interns as
+      | { full_name?: string; student_code?: string; email?: string }
+      | null;
+    const batch = row.internship_batches as { name?: string } | null;
+    if (!intern?.full_name) return [];
+    return [
+      {
+        internship_id: row.id as string,
+        full_name: intern.full_name,
+        student_code: intern.student_code ?? null,
+        email: intern.email ?? null,
+        batch_name: batch?.name ?? "—",
+      },
+    ];
+  });
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Quản lý điểm danh"
         description="Điểm danh GPS đã được xác minh ở backend — kèm lịch sử các lượt bị từ chối"
-        actions={<ExportCsvButton href="/api/exports/attendance" />}
+        actions={
+          <div className="flex items-center gap-2">
+            <CreateAttendanceButton internships={internshipOptions} />
+            <ExportCsvButton href="/api/exports/attendance" />
+          </div>
+        }
       />
 
       <section className="flex flex-col gap-3">

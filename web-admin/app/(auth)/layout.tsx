@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "IMS · Đăng nhập",
@@ -14,11 +15,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
       <div className="relative z-10 flex w-full max-w-sm flex-col gap-6">
         <div className="flex flex-col items-center gap-3 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="relative">
-            <img
+            <Image
               src="/logo-dalat.png"
               alt="Logo Đại học Đà Lạt"
+              width={64}
+              height={64}
+              priority
               className="size-16 rounded-2xl bg-white object-contain p-1.5 shadow-md ring-2 ring-emerald-600/20"
             />
             <span className="absolute -bottom-1 -right-1 size-3.5 rounded-full bg-emerald-500 ring-2 ring-white" />

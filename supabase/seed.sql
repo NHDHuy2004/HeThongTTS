@@ -140,7 +140,7 @@ insert into public.interns (id, user_id, student_code, full_name, email, phone, 
   ('60000000-0000-0000-0000-000000000001',
    '40000000-0000-0000-0000-000000000004', 'SV-2026-0001', 'Intern Trần Thị I',
    'intern@ims.local', '0987654321', 'Đại học Bách Khoa Hà Nội', 'Công nghệ thông tin', 'pending')
-on conflict (student_code) do nothing;
+on conflict (id) do nothing;
 
 -- --------------------------------------------------------------------------
 -- 11. Internship (gán intern vào batch + department + mentor)
@@ -161,7 +161,7 @@ insert into public.interns (id, user_id, student_code, full_name, email, phone, 
    'intern2@ims.local', '0987000002', 'Đại học Bách Khoa Hà Nội', 'Công nghệ thông tin', 'active'),
   ('60000000-0000-0000-0000-000000000003', null, 'SV-2026-0003', 'Intern Phạm Thị P',
    'intern3@ims.local', '0987000003', 'Đại học Bách Khoa Hà Nội', 'Công nghệ thông tin', 'active')
-on conflict (student_code) do nothing;
+on conflict (id) do nothing;
 
 insert into public.internships (id, intern_id, batch_id, department_id, mentor_id, status, start_date, end_date, created_by) values
   ('70000000-0000-0000-0000-000000000002',

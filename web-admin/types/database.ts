@@ -1507,6 +1507,18 @@ export interface Database {
         };
         Returns: Json;
       };
+      create_attendance: {
+        Args: {
+          p_internship_id: string;
+          p_work_date: string;
+          p_status: AttendanceStatus;
+          p_check_in_time?: string | null;
+          p_check_out_time?: string | null;
+          p_note?: string | null;
+          p_reason: string;
+        };
+        Returns: Json;
+      };
       attendance_check: {
         Args: {
           p_user_id: string;

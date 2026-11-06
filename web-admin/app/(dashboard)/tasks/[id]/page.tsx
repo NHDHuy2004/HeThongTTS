@@ -29,36 +29,62 @@ export default async function TaskDetailPage({
 
   const supabase = await createClient();
 
-  const { data: task, error } = await supabase
-    .from("tasks")
-    .select(
-      "*, internships(id, interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
-    )
-    .eq("id", id)
-    .maybeSingle();
+  // 5 query độc lập (chỉ cần id) chạy song song; profiles phụ thuộc
+  // reviews+submissions nên chạy sau.
+  const internIdPromise =
+    role === "intern"
+      ? supabase
+          .from("interns")
+          .select("id")
+          .eq("user_id", session.profile?.id ?? "")
+          .maybeSingle()
+      : Promise.resolve({ data: null });
 
-  if (error || !task) notFound();
-
-  const { data: reviewsData = [] } = await supabase
-    .from("task_reviews")
-    .select("*")
-    .eq("task_id", id)
-    .order("reviewed_at", { ascending: false });
-  const reviews = reviewsData ?? [];
-
-  const submissionsData =
-    await supabase.from("task_submissions")
-      .select("*, task_submission_files(*), task_submission_links(*)")
-      .eq("task_id", id)
-      .order("submitted_at", { ascending: false });
-  const submissions = submissionsData.data ?? [];
-
-  const subtasksData =
-    await supabase.from("task_subtasks")
+  const [
+    taskRes,
+    reviewsRes,
+    submissionsRes,
+    subtasksRes,
+    attachmentsRes,
+    meRes,
+  ] = await Promise.all([
+    supabase
+      .from("tasks")
+      .select(
+        "*, internships(id, interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("task_reviews")
       .select("*")
       .eq("task_id", id)
-      .order("created_at", { ascending: true });
-  const subtasks = subtasksData.data ?? [];
+      .order("reviewed_at", { ascending: false }),
+    supabase
+      .from("task_submissions")
+      .select("*, task_submission_files(*), task_submission_links(*)")
+      .eq("task_id", id)
+      .order("submitted_at", { ascending: false }),
+    supabase
+      .from("task_subtasks")
+      .select("*")
+      .eq("task_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("task_attachments")
+      .select("*")
+      .eq("task_id", id)
+      .order("created_at", { ascending: true }),
+    internIdPromise,
+  ]);
+
+  const task = taskRes.data;
+  if (taskRes.error || !task) notFound();
+
+  const reviews = reviewsRes.data ?? [];
+  const submissions = submissionsRes.data ?? [];
+  const subtasks = subtasksRes.data ?? [];
+  const attachments = attachmentsRes.data ?? [];
 
   const personIds = Array.from(
     new Set([
@@ -73,13 +99,6 @@ export default async function TaskDetailPage({
   const nameOf = (uid: string | null) =>
     uid ? profiles.find((p) => p.id === uid)?.full_name ?? "—" : "—";
 
-  const { data: attachmentsData = [] } = await supabase
-    .from("task_attachments")
-    .select("*")
-    .eq("task_id", id)
-    .order("created_at", { ascending: true });
-  const attachments = attachmentsData ?? [];
-
   const signed = await Promise.all(
     attachments.map(async (a) =>
       (await supabase.storage.from("task-attachments").createSignedUrl(a.file_path, 3600)).data
@@ -92,15 +111,7 @@ export default async function TaskDetailPage({
   const assignees = task.task_assignees ?? [];
 
   // Intern hiện tại (để lọc phần việc của họ)
-  let myInternId: string | null = null;
-  if (role === "intern") {
-    const { data: me } = await supabase
-      .from("interns")
-      .select("id")
-      .eq("user_id", session.profile?.id ?? "")
-      .maybeSingle();
-    myInternId = me?.id ?? null;
-  }
+  const myInternId: string | null = meRes.data?.id ?? null;
 
   // Thống kê theo từng intern trên chính task này
   const perIntern = new Map<

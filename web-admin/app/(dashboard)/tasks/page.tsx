@@ -33,8 +33,19 @@ export default async function TasksPage() {
   const supabase = await createClient();
 
   const canManage = role === "admin" || role === "hr" || role === "mentor";
-  let internships: { id: string; name: string }[] = [];
+  const isIntern = role === "intern";
+  if (!canManage && !isIntern) redirect("/dashboard");
 
+  // Query chính chạy song song với query option/lookup (không phụ thuộc nhau).
+  const tasksPromise = supabase
+    .from("tasks")
+    .select(
+      "*, internships(interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
+    )
+    .order("created_at", { ascending: false })
+    .limit(200);
+
+  let internships: { id: string; name: string }[] = [];
   if (canManage) {
     // RLS đã giới hạn: admin/hr thấy toàn bộ, mentor thấy intern của mình.
     const { data: ipList } = await supabase
@@ -43,24 +54,16 @@ export default async function TasksPage() {
       .is("deleted_at", null)
       .order("start_date", { ascending: false });
     internships = toOptions(ipList ?? []);
-  } else if (role === "intern") {
+  } else {
     const { data: myIntern } = await supabase
       .from("interns")
       .select("id")
       .eq("user_id", userId)
       .maybeSingle();
     if (!myIntern) redirect("/dashboard");
-  } else {
-    redirect("/dashboard");
   }
 
-  const { data, error } = await supabase
-    .from("tasks")
-    .select(
-      "*, internships(interns(full_name)), task_assignees(intern_id, role, interns(full_name))",
-    )
-    .order("created_at", { ascending: false })
-    .limit(200);
+  const { data, error } = await tasksPromise;
 
   if (error) return <p className="text-sm text-destructive">Lỗi tải danh sách: {error.message}</p>;
 

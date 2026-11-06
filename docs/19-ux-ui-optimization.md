@@ -264,3 +264,63 @@ Hiá»‡n `features/nav.ts` lÃ  má»™t máº£ng pháº³ng, gÃ¢y ra thá»±c táº¿ 3 má»¥c "
 - Swipe approve: `reports_screen` + `requests_screen` á»Ÿ approveMode â€” card `Dismissible` (vuá»‘t pháº£i = phÃª duyá»‡t, vuá»‘t trÃ¡i = yÃªu cáº§u chá»‰nh sá»­a/bá»• sung), cÃ³ confirm dialog trÆ°á»›c khi chá»‘t, background mÃ u AppColors; reload list sau thao tÃ¡c.
 - Peak moment check-in: `_SuccessBanner` trong `checkin_screen` â€” icon check "náº£y" (elasticOut scale) khi Ä‘iá»ƒm danh thÃ nh cÃ´ng.
 - Verify: `flutter analyze` â€” 0 issue.
+
+
+### Batch P4 (2026-10-29) — Audit & t?i ýu hi?u nãng web-admin
+
+**Ph?m vi:** audit data fetching, auth, query Supabase, bundle, ?nh c?a toàn b? trang trong `web-admin/app`. S?a các bottleneck có b?ng ch?ng; gi? nguyên nghi?p v?, phân quy?n, RLS.
+
+#### Nguyên nhân xác ð?nh (có b?ng ch?ng trong code)
+
+| # | V?n ð? | V? trí | B?ng ch?ng |
+|---|---|---|---|
+| P1-a | Auth query **nhân ðôi m?i request** | `lib/auth.ts` + `app/(dashboard)/layout.tsx` | `requireAuth()` g?i ? c? layout l?n page, m?i call ch?y `auth.getUser()` (round-trip Auth) + query `profiles`. Không cache ? m?i trang t?n 2× (1 round-trip + 1 query) th?a. |
+| P1-b | Query **tu?n t?** dù ð?c l?p | `/interns`, `/tasks`, `/attendance`, `/tasks/[id]` | Nhi?u `await supabase...` x?p ch?ng (round-trip m?ng tu?n t?) thay v? `Promise.all`. `/tasks/[id]` n?ng nh?t: 6 query tu?n t?. |
+| P1-c | Query **vô ích** theo role | `/interns` (mentor), `/attendance` (admin/hr) | T?i `batches/departments/mentors` (internships cho form) ngay c? khi role không dùng t?i. |
+| P2-a | Search DataTable re-render m?i keystyte | `components/data-table.tsx` | Filter ch?y ð?ng b? theo `query` state — b?ng l?n render l?i m?i phím g? (không g?i API, nhýng gây jank). |
+| P2-b | Logo dùng `<img>` raw | `app/(auth)/layout.tsx`, `components/layout/sidebar.tsx` | 2 ch? — không ðý?c t?i ýu (WebP/resize/lazy), logo above-the-fold trên login. |
+
+**Không ph?i bottleneck (ð? ki?m tra):** `xlsx` (402 KB) và `recharts` (370 KB) n?m ? chunk async riêng, **không** trong `rootMainFiles` ? ch? t?i khi trang c?n (import wizard / dashboard). Dashboard admin/HR/Mentor + `/admin/reports` + `/admin/requests` + `/mentor/review` ð? dùng `Promise.all` s?n.
+
+#### Thay ð?i
+
+| File | Thay ð?i | L? do |
+|---|---|---|
+| `lib/auth.ts` | B?c `requireAuth` b?ng `React.cache` | Dedupe `auth.getUser()` + query `profiles` gi?a layout và page trong cùng request (scoped theo request — không cache gi?a user, không r? d? li?u). |
+| `app/(dashboard)/interns/page.tsx` | `Promise.all` cho interns + batches + departments + mentors; **b?** query batches/departments/mentors ? nhánh mentor | Gi?m round-trip tu?n t?; mentor ch? xem b?ng nên không c?n options form. |
+| `app/(dashboard)/tasks/page.tsx` | Query chính ch?y song song v?i query options/lookup | Hai query ð?c l?p ? 2 round-trip tu?n t? thành 1. |
+| `app/(dashboard)/attendance/page.tsx` | Song song attendance + internships; **b?** query internships ? nhánh admin/hr | Internships ch? c?n cho form t?o c?a mentor. |
+| `app/(dashboard)/tasks/[id]/page.tsx` | 5 query ð?c l?p (task, reviews, submissions, subtasks, attachments) + intern lookup ? `Promise.all`; `profiles` ch?y sau (ph? thu?c reviews+submissions) | Gi?m t? 6 round-trip tu?n t? xu?ng 2 (1 lô song song + 1 profiles). |
+| `components/data-table.tsx` | Debounce filter 300ms — input hi?n th? ngay (`query`), filter dùng `debouncedQuery` | Input responsive, b?ng ch? re-render khi ng?ng g?. |
+| `app/(auth)/layout.tsx`, `components/layout/sidebar.tsx` | `<img>` ? `next/image` (`priority`, width/height) | Logo login/sidebar t?i ýu giao hàng, không layout shift; b? eslint-disable th?a. |
+
+#### K?t qu? ðo (ch?y t?i máy dev — `npm run build`, Next.js 16 Turbopack)
+
+| Ch? s? | Trý?c t?i ýu | Sau t?i ýu |
+|---|---|---|
+| `tsc --noEmit` | 0 l?i | 0 l?i |
+| `eslint` | 0 l?i, 4 warning `img` | 0 l?i, **0 warning** |
+| Production build | ? Compiled | ? Compiled (exit 0), không warning m?i |
+| T?ng chunk JS client | 65 chunk / 2.78 MB | 66 chunk / 2.80 MB |
+| S? round-trip auth / trang | 2× (`auth.getUser` + `profiles`) | 1× (dedupe `React.cache`) |
+| `/tasks/[id]` DB round-trip | 6 tu?n t? | 2 (5 song song + 1 `profiles`) |
+| `/interns` (mentor) | 4 tu?n t? | 1 (b? options vô ích) |
+| `/interns` (admin) | 4 tu?n t? | 4 song song (1 lô) |
+| `/tasks` (admin/mentor) | 2 tu?n t? | 2 song song (1 lô) |
+| `/attendance` (mentor) | 2 tu?n t? | 2 song song (1 lô) |
+| `/attendance` (admin/hr) | 2 (1 vô ích) | 1 (b? internships th?a) |
+
+**Ghi chú bundle:** +1 chunk / +29 KB sau khi thêm `next/image` — ð?i l?y logo ðý?c t?i ýu (WebP, ðúng kích thý?c, `priority`, tránh layout shift). Các thý vi?n n?ng (xlsx, recharts) v?n async, không tãng baseline.
+
+#### C? ? KHÔNG làm (ð? tránh r?i ro ð?i d? li?u/phân quy?n)
+
+- **`/evaluations`**: các query có ph? thu?c ID th?t (mentor?internships?evaluations). RLS ð? scope s?n nhýng query hi?n t?i **không filter `deleted_at` trên internships** c?n RLS có ? collapse vào RLS s? ð?i t?p k?t qu?. Gi? nguyên.
+- **Không thêm index** m?i: không có quy?n DB/`EXPLAIN ANALYZE` ð? xác minh execution plan — không ðoán.
+- **Không b?t `force-cache`** cho d? li?u dashboard/danh sách: risk cache nh?m d? li?u riêng gi?a các user; `revalidatePath` sau mutation ð? ðúng.
+- **Không ð?i RLS** hay logic nghi?p v?.
+
+#### Gi?i h?n chýa xác minh ðý?c (c?n môi trý?ng/DB)
+
+- Th?i gian t?i trang, API response, Core Web Vitals (LCP/INP/CLS): c?n ch?y production server + tr?nh duy?t/Lighthouse — **chýa ðo** t?i ðây.
+- Hi?u nãng query th?c t? khi có d? li?u l?n: c?n `EXPLAIN ANALYZE` trên Supabase — **chýa ðo** (không có quy?n DB).
+- Cách xác minh: ch?y `npm run start` (production), m? Lighthouse trên `/dashboard`, `/interns`, `/tasks/[id]`; ðo s? round-trip/network trong DevTools trý?c/sau.

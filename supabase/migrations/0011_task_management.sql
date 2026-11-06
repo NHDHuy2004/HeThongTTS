@@ -214,9 +214,16 @@ alter table public.tasks add column if not exists deliverables jsonb not null de
 -- --------------------------------------------------------------------------
 -- 2. Các bảng con của task
 -- --------------------------------------------------------------------------
+-- Drop theo thứ tự NGƯỢC phụ thuộc FK (bảng được tham chiếu drop sau cùng)
+-- để migration có thể chạy lại được. Thứ tự create phía dưới giữ nguyên.
+drop table if exists public.task_submission_files;
+drop table if exists public.task_submission_links;
+drop table if exists public.task_reviews;
+drop table if exists public.task_submissions;
+drop table if exists public.task_subtasks;
+drop table if exists public.task_assignees;
 
 -- 2.1 task_assignees: danh sách thành viên được giao (1..n cho group task)
-drop table if exists public.task_assignees;
 create table public.task_assignees (
   id          uuid primary key default gen_random_uuid(),
   task_id     uuid not null references public.tasks(id) on delete cascade,
@@ -229,7 +236,6 @@ create table public.task_assignees (
 );
 
 -- 2.2 task_subtasks: chia nhỏ task nhóm, mỗi sub-task gán cho một thành viên
-drop table if exists public.task_subtasks;
 create table public.task_subtasks (
   id             uuid primary key default gen_random_uuid(),
   task_id        uuid not null references public.tasks(id) on delete cascade,
@@ -248,7 +254,6 @@ create table public.task_subtasks (
 );
 
 -- 2.3 task_submissions: lịch sử nộp bài (mỗi lần nộp là một dòng)
-drop table if exists public.task_submissions;
 create table public.task_submissions (
   id                     uuid primary key default gen_random_uuid(),
   task_id                uuid not null references public.tasks(id) on delete cascade,
@@ -264,7 +269,6 @@ create table public.task_submissions (
 );
 
 -- 2.4 task_submission_files
-drop table if exists public.task_submission_files;
 create table public.task_submission_files (
   id            uuid primary key default gen_random_uuid(),
   submission_id uuid not null references public.task_submissions(id) on delete cascade,
@@ -276,7 +280,6 @@ create table public.task_submission_files (
 );
 
 -- 2.5 task_submission_links
-drop table if exists public.task_submission_links;
 create table public.task_submission_links (
   id            uuid primary key default gen_random_uuid(),
   submission_id uuid not null references public.task_submissions(id) on delete cascade,
@@ -286,7 +289,6 @@ create table public.task_submission_links (
 );
 
 -- 2.6 task_reviews: lịch sử đánh giá (approve / request changes / reject)
-drop table if exists public.task_reviews;
 create table public.task_reviews (
   id                 uuid primary key default gen_random_uuid(),
   task_id            uuid not null references public.tasks(id) on delete cascade,

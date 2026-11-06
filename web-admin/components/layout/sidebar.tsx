@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
 
@@ -15,11 +16,13 @@ export function Sidebar({ role }: { role: string }) {
     <nav className="flex h-full flex-col justify-between p-3 bg-card border-r border-border/80">
       <div className="flex flex-col">
         <div className="flex items-center gap-3 px-2 pb-3 pt-1 border-b border-border/60">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
           <div className="relative">
-            <img
+            <Image
               src="/logo-dalat.png"
               alt="Đại học Đà Lạt"
+              width={36}
+              height={36}
+              priority
               className="size-9 shrink-0 rounded-xl bg-white object-contain p-1 shadow-sm ring-1 ring-emerald-600/20"
             />
             <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />

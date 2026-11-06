@@ -55,13 +55,21 @@ export function DataTable<T>({
   pageSize?: number;
 }) {
   const [query, setQuery] = React.useState("");
+  const [debouncedQuery, setDebouncedQuery] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [pageSize, setPageSize] = React.useState(initialPageSize);
 
   const searchable = Boolean(searchText) || Boolean(searchKeys?.length);
 
+  // Debounce 300ms: input hiển thị ngay (query), nhưng việc filter + render
+  // lại bảng chỉ chạy khi người dùng ngừng gõ — giảm re-render với bảng lớn.
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
   const rows = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = debouncedQuery.trim().toLowerCase();
     if (!q) return data;
     if (searchText) {
       return data.filter((row) => searchText(row).toLowerCase().includes(q));
@@ -74,7 +82,7 @@ export function DataTable<T>({
         return String(value).toLowerCase().includes(q);
       }),
     );
-  }, [data, query, searchKeys, searchText]);
+  }, [data, debouncedQuery, searchKeys, searchText]);
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
   const safePage = Math.min(page, totalPages);

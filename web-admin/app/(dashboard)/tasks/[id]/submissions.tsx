@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateTime } from "@/features/labels";
-import { validateTaskFile } from "../task-actions";
+import { validateTaskFile } from "../task-files";
 import type { SubtaskRow } from "./subtasks";
 
 // Upload qua REST API để theo dõi tiến độ thật
