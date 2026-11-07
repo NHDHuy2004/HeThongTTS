@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Inbox } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -7,11 +8,13 @@ export function EmptyState({
   icon,
   title,
   description,
+  action,
   className,
 }: {
   icon?: ReactNode;
   title: string;
   description?: string;
+  action?: ReactNode;
   className?: string;
 }) {
   return (
@@ -21,11 +24,14 @@ export function EmptyState({
         className,
       )}
     >
-      {icon ? <div className="text-muted-foreground">{icon}</div> : null}
+      <div className="flex size-11 items-center justify-center rounded-xl bg-muted/60 text-muted-foreground">
+        {icon ?? <Inbox className="size-5" aria-hidden />}
+      </div>
       <p className="text-sm font-medium">{title}</p>
       {description ? (
         <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
       ) : null}
+      {action ? <div className="mt-2">{action}</div> : null}
     </div>
   );
 }

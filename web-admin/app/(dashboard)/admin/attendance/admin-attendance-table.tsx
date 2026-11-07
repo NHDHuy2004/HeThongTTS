@@ -24,15 +24,29 @@ export function AdminAttendanceTable({ data }: { data: AdminAttendanceRow[] }) {
   const [from, setFrom] = React.useState("");
   const [to, setTo] = React.useState("");
   const [status, setStatus] = React.useState("");
+  const [internName, setInternName] = React.useState("");
+  const [onlyMissingCheckout, setOnlyMissingCheckout] = React.useState(false);
+
+  const internOptions = React.useMemo(() => {
+    const names = new Set<string>();
+    for (const row of data) {
+      if (row.interns?.full_name) names.add(row.interns.full_name);
+    }
+    return [...names].sort((a, b) => a.localeCompare(b, "vi"));
+  }, [data]);
 
   const filtered = React.useMemo(() => {
     return data.filter((row) => {
       if (from && row.work_date < from) return false;
       if (to && row.work_date > to) return false;
       if (status && row.status !== status) return false;
+      if (internName && row.interns?.full_name !== internName) return false;
+      if (onlyMissingCheckout && !(row.check_in_at && !row.check_out_at)) {
+        return false;
+      }
       return true;
     });
-  }, [data, from, to, status]);
+  }, [data, from, to, status, internName, onlyMissingCheckout]);
 
   const columns: Column<AdminAttendanceRow>[] = [
     { key: "work_date", header: "Ngày", cell: (r) => formatDate(r.work_date) },
@@ -150,6 +164,42 @@ export function AdminAttendanceTable({ data }: { data: AdminAttendanceRow[] }) {
             <option value="wfh">Làm từ xa</option>
           </select>
         </div>
+        {internOptions.length > 1 ? (
+          <div className="flex flex-col gap-1">
+            <label
+              className="text-xs font-medium text-muted-foreground"
+              htmlFor="att-intern"
+            >
+              Thực tập sinh
+            </label>
+            <select
+              id="att-intern"
+              value={internName}
+              onChange={(e) => setInternName(e.target.value)}
+              className="h-8 rounded-lg border bg-background px-2 text-sm"
+            >
+              <option value="">Tất cả</option>
+              {internOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+        <label
+          className="flex h-8 cursor-pointer items-center gap-2 rounded-lg border bg-background px-3 text-sm"
+          htmlFor="att-missing-checkout"
+        >
+          <input
+            id="att-missing-checkout"
+            type="checkbox"
+            checked={onlyMissingCheckout}
+            onChange={(e) => setOnlyMissingCheckout(e.target.checked)}
+            className="size-3.5 accent-emerald-600"
+          />
+          Chưa check-out
+        </label>
       </div>
       <DataTable
         data={filtered}

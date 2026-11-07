@@ -16,10 +16,16 @@ export function RequestDetailActions({
   requestId,
   status,
   mode,
+  requestType,
+  viewerRole,
 }: {
   requestId: string;
   status: string;
   mode: "mine" | "review";
+  /** Loại đơn — dùng để chặn Mentor xét duyệt đơn điều chỉnh chấm công. */
+  requestType?: string;
+  /** Vai trò người xem (lấy từ session phía server). */
+  viewerRole?: string;
 }) {
   const [comment, setComment] = React.useState("");
   const [confirm, confirmDialog] = useConfirm();
@@ -61,6 +67,16 @@ export function RequestDetailActions({
       return (
         <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
           Đơn đã được xử lý — không thể thay đổi nữa.
+        </div>
+      );
+    }
+    // Khớp quy tắc trong RPC review_request (0017): mentor KHÔNG được xử lý
+    // đơn attendance_adjustment — ẩn nút thay vì để lỗi trả về sau khi bấm.
+    if (requestType === "attendance_adjustment" && viewerRole === "mentor") {
+      return (
+        <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+          Đơn điều chỉnh chấm công do HR/Admin xử lý — bạn không có quyền xét
+          duyệt đơn này.
         </div>
       );
     }

@@ -1,14 +1,31 @@
 import { redirect } from "next/navigation";
+import {
+  CalendarCheck,
+  CheckCircle2,
+  Clock,
+  LogOut,
+  UserX,
+  Users,
+} from "lucide-react";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
 import { AttendanceTable, type AttendanceRowView } from "./attendance-table";
+import { InternCheckinPanel, type TodayAttendance } from "./intern-checkin-panel";
 import {
   CreateAttendanceButton,
   type InternshipOption,
 } from "../admin/attendance/create-attendance-dialog";
+import {
+  getTodayAttendanceStats,
+  getTodayVN,
+  summarizeAttendance,
+  type AttendanceSummary,
+  type TodayAttendanceStats,
+} from "@/features/attendance/stats";
 
 export default async function AttendancePage() {
   const session = await requireAuth();
@@ -19,9 +36,13 @@ export default async function AttendancePage() {
 
   let rows: AttendanceRowView[] = [];
   let internshipOptions: InternshipOption[] = [];
+  let todayStats: TodayAttendanceStats | null = null;
+  let internSummary: AttendanceSummary | null = null;
+  let todayRow: TodayAttendance = null;
 
   if (role === "admin" || role === "hr" || role === "mentor") {
-    // Query chính và query option (mentor) chạy song song.
+    // Query chính và query option (mentor) chạy song song; thêm 1 query nhẹ
+    // cho thống kê "hôm nay" (RLS tự scope theo vai trò / mentor phụ trách).
     const attendancePromise = supabase
       .from("attendance")
       .select("*, interns(full_name)")
@@ -41,11 +62,13 @@ export default async function AttendancePage() {
             .limit(500)
         : Promise.resolve({ data: [] as Record<string, unknown>[] });
 
-    const [{ data }, internshipsRes] = await Promise.all([
+    const [{ data }, internshipsRes, todayRes] = await Promise.all([
       attendancePromise,
       internshipsPromise,
+      getTodayAttendanceStats(supabase),
     ]);
     rows = (data ?? []) as AttendanceRowView[];
+    todayStats = todayRes;
 
     // RLS internships_select_mentor tự giới hạn về intern phụ trách.
     internshipOptions = (internshipsRes.data as Record<string, unknown>[]).flatMap(
@@ -73,17 +96,37 @@ export default async function AttendancePage() {
       .eq("user_id", userId)
       .maybeSingle();
     if (myIntern) {
-      const { data } = await supabase
-        .from("attendance")
-        .select("*, interns(full_name)")
-        .eq("intern_id", myIntern.id)
-        .order("work_date", { ascending: false })
-        .limit(200);
-      rows = (data ?? []) as AttendanceRowView[];
+      // Hai query song song: danh sách cho bảng + dữ liệu cho thống kê.
+      const [listRes, summaryRes] = await Promise.all([
+        supabase
+          .from("attendance")
+          .select("*, interns(full_name)")
+          .eq("intern_id", myIntern.id)
+          .order("work_date", { ascending: false })
+          .limit(200),
+        supabase
+          .from("attendance")
+          .select("status, check_in_at, check_out_at, work_date")
+          .eq("intern_id", myIntern.id)
+          .order("work_date", { ascending: false })
+          .limit(1000),
+      ]);
+      rows = (listRes.data ?? []) as AttendanceRowView[];
+
+      const summaryRows = (summaryRes.data ?? []) as Array<{
+        status: string;
+        check_in_at: string | null;
+        check_out_at: string | null;
+        work_date: string;
+      }>;
+      internSummary = summarizeAttendance(summaryRows);
+      todayRow = summaryRows.find((r) => r.work_date === getTodayVN()) ?? null;
     }
   } else {
     redirect("/dashboard");
   }
+
+  const isManager = role === "admin" || role === "hr" || role === "mentor";
 
   return (
     <div className="flex flex-col gap-6">
@@ -102,7 +145,99 @@ export default async function AttendancePage() {
           ) : undefined
         }
       />
-      <AttendanceTable data={rows} />
+
+      {role === "intern" && internSummary ? (
+        <>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <StatCard
+              label="Tổng ngày công"
+              value={internSummary.total}
+              icon={CalendarCheck}
+              tone="emerald"
+            />
+            <StatCard
+              label="Có mặt"
+              value={internSummary.present}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
+            <StatCard
+              label="Đi muộn"
+              value={internSummary.late}
+              icon={Clock}
+              tone="orange"
+            />
+            <StatCard
+              label="Vắng mặt"
+              value={internSummary.absent}
+              icon={UserX}
+              tone="orange"
+            />
+            <StatCard
+              label="Thiếu check-out"
+              value={internSummary.missingCheckout}
+              icon={LogOut}
+              tone="orange"
+            />
+            <StatCard
+              label="Chuyên cần"
+              value={`${internSummary.attendanceRate}%`}
+              icon={CheckCircle2}
+              tone="emerald"
+            />
+          </div>
+          <InternCheckinPanel today={todayRow} />
+        </>
+      ) : null}
+
+      {isManager && todayStats ? (
+        <div
+          className={
+            role === "mentor"
+              ? "grid grid-cols-2 gap-4 md:grid-cols-5"
+              : "grid grid-cols-2 gap-4 md:grid-cols-4"
+          }
+        >
+          {role === "mentor" ? (
+            <StatCard
+              label="Intern phụ trách"
+              value={internshipOptions.length}
+              icon={Users}
+              tone="emerald"
+            />
+          ) : null}
+          <StatCard
+            label="Đã check-in hôm nay"
+            value={todayStats.checkedIn}
+            icon={CheckCircle2}
+            tone="emerald"
+          />
+          <StatCard
+            label="Đi muộn hôm nay"
+            value={todayStats.late}
+            icon={Clock}
+            tone="orange"
+          />
+          <StatCard
+            label="Vắng hôm nay"
+            value={todayStats.absent}
+            icon={UserX}
+            tone="orange"
+          />
+          <StatCard
+            label="Chưa check-out"
+            value={todayStats.missingCheckout}
+            icon={LogOut}
+            tone="orange"
+          />
+        </div>
+      ) : null}
+
+      <AttendanceTable
+        data={rows}
+        showInternFilter={role === "mentor"}
+        showMonthFilter={role === "intern" || role === "mentor"}
+      />
     </div>
   );
 }

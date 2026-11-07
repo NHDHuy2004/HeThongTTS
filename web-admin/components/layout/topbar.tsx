@@ -4,6 +4,7 @@ import { useState } from "react";
 import { LogOut, Menu } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +22,13 @@ import { roleLabel } from "@/features/labels";
 import { logout } from "@/app/(auth)/login/actions";
 import { Breadcrumbs } from "./breadcrumbs";
 import { Sidebar } from "./sidebar";
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0].slice(0, 1) + parts[parts.length - 1].slice(0, 1)).toUpperCase();
+}
 
 export function Topbar({
   user,
@@ -41,9 +49,9 @@ export function Topbar({
         >
           <Menu />
         </Button>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" showCloseButton={false} className="w-72 max-w-[85vw] p-0">
           <SheetTitle className="sr-only">Điều hướng</SheetTitle>
-          <Sidebar role={user.role} />
+          <Sidebar role={user.role} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
 
@@ -56,9 +64,9 @@ export function Topbar({
           <DropdownMenuTrigger
             render={
               <Button variant="ghost" className="gap-2 px-2" aria-label="Tài khoản">
-                <Avatar className="size-8 ring-2 ring-emerald-600/20">
-                  <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-600 to-emerald-800 text-white text-xs font-bold shadow-xs">
-                    {user.full_name.slice(0, 2).toUpperCase()}
+                <Avatar aria-label={user.full_name} className="size-8 ring-2 ring-primary/20">
+                  <span className="flex size-full items-center justify-center bg-gradient-to-br from-primary to-primary/70 text-xs font-bold text-primary-foreground">
+                    {getInitials(user.full_name)}
                   </span>
                 </Avatar>
                 <span className="hidden max-w-36 truncate text-sm font-medium md:inline">
@@ -72,9 +80,9 @@ export function Topbar({
               <DropdownMenuLabel>
                 <p className="truncate text-sm font-semibold">{user.full_name}</p>
                 <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                <span className="mt-1.5 inline-flex items-center px-1.5 py-0.2 text-[10px] font-semibold rounded-md bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-300">
+                <Badge variant="success" className="mt-1.5 text-[11px]">
                   {roleLabel[user.role] ?? user.role}
-                </span>
+                </Badge>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />

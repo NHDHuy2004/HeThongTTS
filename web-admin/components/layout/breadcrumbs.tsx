@@ -37,26 +37,27 @@ export function Breadcrumbs() {
   const visible = truncated ? [crumbs[0], ...crumbs.slice(-2)] : crumbs;
 
   return (
-    <Breadcrumb className="hidden sm:flex">
-      <BreadcrumbList>
-        {truncated ? (
-          <Fragment>
-            <BreadcrumbItem>
-              <BreadcrumbEllipsis />
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-          </Fragment>
-        ) : null}
+    <Breadcrumb className="hidden min-w-0 sm:flex">
+      <BreadcrumbList className="min-w-0">
         {visible.map((crumb, i) => {
           const isLast = i === visible.length - 1;
+          const showEllipsis = truncated && i === 1;
           return (
             <Fragment key={crumb.href}>
               {i > 0 ? <BreadcrumbSeparator /> : null}
-              <BreadcrumbItem>
+              {showEllipsis ? (
+                <Fragment>
+                  <BreadcrumbItem>
+                    <BreadcrumbEllipsis />
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                </Fragment>
+              ) : null}
+              <BreadcrumbItem className="min-w-0">
                 {isLast ? (
-                  <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                  <BreadcrumbPage className="truncate">{crumb.label}</BreadcrumbPage>
                 ) : (
-                  <BreadcrumbLink render={<Link href={crumb.href} />}>
+                  <BreadcrumbLink render={<Link href={crumb.href} />} className="truncate">
                     {crumb.label}
                   </BreadcrumbLink>
                 )}

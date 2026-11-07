@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { Search, X } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,16 @@ export type DataTableEmptyState = {
 };
 
 const PAGE_SIZES = [10, 25, 50, 100];
+
+function getNestedValue(record: Record<string, unknown>, path: string): unknown {
+  if (!path.includes(".")) return record[path];
+  return path.split(".").reduce<unknown>((acc, part) => {
+    if (acc && typeof acc === "object") {
+      return (acc as Record<string, unknown>)[part];
+    }
+    return undefined;
+  }, record);
+}
 
 export function DataTable<T>({
   data,
@@ -77,7 +89,7 @@ export function DataTable<T>({
     if (!searchKeys?.length) return data;
     return data.filter((row) =>
       searchKeys.some((key) => {
-        const value = (row as Record<string, unknown>)[key as string];
+        const value = getNestedValue(row as Record<string, unknown>, String(key));
         if (value == null) return false;
         return String(value).toLowerCase().includes(q);
       }),
@@ -98,13 +110,29 @@ export function DataTable<T>({
       {searchable || toolbar ? (
         <div className="flex flex-wrap items-center gap-2">
           {searchable ? (
-            <Input
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-              placeholder={searchPlaceholder}
-              aria-label={searchLabel ?? searchPlaceholder}
-              className="h-9 w-full max-w-xs"
-            />
+            <div className="relative w-full max-w-xs flex-1 sm:flex-none">
+              <Search
+                aria-hidden
+                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                value={query}
+                onChange={(e) => onQueryChange(e.target.value)}
+                placeholder={searchPlaceholder}
+                aria-label={searchLabel ?? searchPlaceholder}
+                className="h-9 w-full pl-8 pr-8"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  aria-label="Xóa tìm kiếm"
+                  onClick={() => onQueryChange("")}
+                  className="absolute right-1.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  <X className="size-3.5" />
+                </button>
+              ) : null}
+            </div>
           ) : null}
           {toolbar}
         </div>
@@ -119,12 +147,12 @@ export function DataTable<T>({
           }
         />
       ) : (
-        <div className="rounded-xl border border-border/80 bg-card shadow-xs overflow-hidden">
+        <div className="overflow-hidden rounded-xl border border-border/80 bg-card shadow-xs">
           <Table>
-            <TableHeader className="bg-muted/40 border-b border-border/70">
+            <TableHeader className="border-b border-border/70 bg-muted/40">
               <TableRow className="hover:bg-transparent">
                 {columns.map((col) => (
-                  <TableHead key={col.key} className={cn("font-semibold text-foreground/80 py-3 text-xs tracking-wider uppercase", col.className)}>
+                  <TableHead key={col.key} className={cn("py-3 text-xs font-semibold uppercase tracking-wider text-foreground/80", col.className)}>
                     {col.header}
                   </TableHead>
                 ))}
@@ -134,7 +162,7 @@ export function DataTable<T>({
               {pageRows.map((row, i) => (
                 <TableRow
                   key={rowKey ? rowKey(row) : i}
-                  className="hover:bg-emerald-500/5 transition-colors border-b border-border/50 last:border-0"
+                  className="border-b border-border/50 transition-colors last:border-0 hover:bg-primary/5"
                 >
                   {columns.map((col) => (
                     <TableCell key={col.key} className={cn("py-3 text-sm", col.className)}>
@@ -153,14 +181,18 @@ export function DataTable<T>({
           Trang <span className="font-semibold text-foreground">{safePage}</span> / {totalPages} · {rows.length} dòng
         </p>
         <div className="flex items-center gap-2">
+          <label className="sr-only" htmlFor="data-table-page-size">
+            Số dòng mỗi trang
+          </label>
           <select
+            id="data-table-page-size"
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
             aria-label="Số dòng mỗi trang"
-            className="h-8 rounded-lg border bg-background px-2 text-xs"
+            className="h-8 rounded-lg border border-input bg-background px-2 text-xs focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           >
             {PAGE_SIZES.map((size) => (
               <option key={size} value={size}>
@@ -171,7 +203,6 @@ export function DataTable<T>({
           <Button
             variant="outline"
             size="sm"
-            className="hover:border-emerald-600/40 hover:text-emerald-700"
             disabled={safePage <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
@@ -180,7 +211,6 @@ export function DataTable<T>({
           <Button
             variant="outline"
             size="sm"
-            className="hover:border-emerald-600/40 hover:text-emerald-700"
             disabled={safePage >= totalPages}
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
           >

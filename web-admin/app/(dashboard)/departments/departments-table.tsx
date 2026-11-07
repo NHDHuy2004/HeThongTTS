@@ -18,7 +18,7 @@ export function DepartmentsTable({ data }: { data: DepartmentRow[] }) {
     {
       key: "is_active",
       header: "Trạng thái",
-      cell: (r) => <StatusBadge value={r.is_active ? "active" : "cancelled"} />,
+      cell: (r) => <StatusBadge value={r.is_active ? "active" : "inactive"} />,
     },
     {
       key: "actions",

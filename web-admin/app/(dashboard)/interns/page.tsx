@@ -42,7 +42,7 @@ export default async function InternsPage() {
           title="Thực tập sinh"
           description="Hồ sơ và phân bổ thực tập sinh vào đợt, phòng ban, mentor"
           actions={
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Link href="/interns/import-jobs">
                 <Button variant="ghost">Lịch sử import</Button>
               </Link>

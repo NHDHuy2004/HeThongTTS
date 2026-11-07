@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { Download } from "lucide-react";
 
-import { cn } from "cn";
+import { Button } from "@/components/ui/button";
 
 /** Nút xuất CSV dùng chung (trước đây copy-paste ở 5 trang). */
 export function ExportCsvButton({
@@ -12,15 +11,15 @@ export function ExportCsvButton({
   className?: string;
 }) {
   return (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent",
-        className,
-      )}
+    <Button
+      variant="outline"
+      size="sm"
+      className={className}
+      nativeButton={false}
+      render={<a href={href} />}
     >
-      <Download className="size-4" />
+      <Download className="size-4" aria-hidden />
       Xuất CSV
-    </Link>
+    </Button>
   );
 }

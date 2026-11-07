@@ -1,9 +1,18 @@
 import { redirect } from "next/navigation";
+import {
+  CheckCircle2,
+  Clock,
+  LogOut,
+  UserX,
+  UserCheck,
+} from "lucide-react";
 
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ExportCsvButton } from "@/components/export-csv-button";
 import { PageHeader } from "@/components/page-header";
+import { StatCard } from "@/components/stat-card";
+import { getTodayAttendanceStats } from "@/features/attendance/stats";
 import { AdminAttendanceTable, type AdminAttendanceRow } from "./admin-attendance-table";
 import { CreateAttendanceButton, type InternshipOption } from "./create-attendance-dialog";
 import {
@@ -18,7 +27,7 @@ export default async function AdminAttendancePage() {
 
   const supabase = await createClient();
 
-  const [attendanceRes, logsRes, internshipsRes] = await Promise.all([
+  const [attendanceRes, logsRes, internshipsRes, todayStats] = await Promise.all([
     supabase
       .from("attendance")
       .select("*, interns(full_name), attendance_locations(name)")
@@ -38,7 +47,18 @@ export default async function AdminAttendancePage() {
       .in("status", ["active", "upcoming"])
       .order("created_at", { ascending: false })
       .limit(500),
+    // Thống kê hôm nay — 1 query nhẹ theo work_date (index sẵn có).
+    getTodayAttendanceStats(supabase),
   ]);
+
+  const activeInterns = ((internshipsRes.data ?? []) as { status?: string }[]).filter(
+    (row) => row.status === "active",
+  ).length;
+  // Chưa check-in = người đang thực tập − đã check-in − nghỉ/WFH hôm nay.
+  const notCheckedIn = Math.max(
+    0,
+    activeInterns - todayStats.checkedIn - todayStats.onLeave - todayStats.workFromHome,
+  );
 
   const internshipOptions: InternshipOption[] = ((
     internshipsRes.data ?? []
@@ -71,6 +91,39 @@ export default async function AdminAttendancePage() {
           </div>
         }
       />
+
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <StatCard
+          label="Đã check-in hôm nay"
+          value={todayStats.checkedIn}
+          icon={CheckCircle2}
+          tone="emerald"
+        />
+        <StatCard
+          label="Chưa check-in hôm nay"
+          value={notCheckedIn}
+          icon={UserCheck}
+          tone="orange"
+        />
+        <StatCard
+          label="Đi muộn hôm nay"
+          value={todayStats.late}
+          icon={Clock}
+          tone="orange"
+        />
+        <StatCard
+          label="Vắng hôm nay"
+          value={todayStats.absent}
+          icon={UserX}
+          tone="orange"
+        />
+        <StatCard
+          label="Chưa check-out"
+          value={todayStats.missingCheckout}
+          icon={LogOut}
+          tone="orange"
+        />
+      </div>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-semibold text-foreground">Bảng điểm danh</h2>

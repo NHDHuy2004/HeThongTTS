@@ -147,6 +147,30 @@ export default async function InternRequestDetailPage({
             {request.review_comment}
           </div>
         ) : null}
+        {request.request_type === "attendance_adjustment" &&
+        request.payload &&
+        typeof request.payload === "object" ? (
+          <div className="grid gap-3 pt-1 sm:grid-cols-2">
+            <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Giờ vào đề xuất</span>
+              <p className="font-medium">
+                {formatDateTime(
+                  (request.payload as { proposed_check_in?: string | null })
+                    .proposed_check_in,
+                )}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Giờ ra đề xuất</span>
+              <p className="font-medium">
+                {formatDateTime(
+                  (request.payload as { proposed_check_out?: string | null })
+                    .proposed_check_out,
+                )}
+              </p>
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <RequestDetailActions

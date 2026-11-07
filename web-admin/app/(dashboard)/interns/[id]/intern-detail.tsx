@@ -62,26 +62,33 @@ export function InternDetail({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-1 border-b">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors",
-              tab === t
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {TAB_LABELS[t]}
-          </button>
-        ))}
+      <div role="tablist" aria-label="Hồ sơ thực tập sinh" className="flex gap-1 overflow-x-auto border-b">
+        {TABS.map((t) => {
+          const selected = tab === t;
+          return (
+            <button
+              key={t}
+              id={`intern-detail-tab-${t}`}
+              role="tab"
+              aria-selected={selected}
+              aria-controls={`intern-detail-panel-${t}`}
+              type="button"
+              onClick={() => setTab(t)}
+              className={cn(
+                "-mb-px min-h-10 shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                selected
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {TAB_LABELS[t]}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "overview" ? (
-        <dl className="grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <dl id="intern-detail-panel-overview" role="tabpanel" aria-labelledby="intern-detail-tab-overview" className="grid grid-cols-1 gap-4 rounded-xl border p-4 sm:grid-cols-2 lg:grid-cols-3">
           <DescriptionRow label="Mã sinh viên" value={intern.student_code} />
           <DescriptionRow label="Trường" value={intern.school} />
           <DescriptionRow label="Ngành" value={intern.major} />
@@ -102,8 +109,8 @@ export function InternDetail({
       ) : null}
 
       {tab === "tasks" ? (
-        <div className="rounded-xl border">
-          <table className="w-full text-sm">
+        <div id="intern-detail-panel-tasks" role="tabpanel" aria-labelledby="intern-detail-tab-tasks" className="overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-xl text-sm">
             <thead>
               <tr className="border-b text-left">
                 <th className="h-10 px-3 font-medium">Tiêu đề</th>
@@ -139,8 +146,8 @@ export function InternDetail({
       ) : null}
 
       {tab === "attendance" ? (
-        <div className="rounded-xl border">
-          <table className="w-full text-sm">
+        <div id="intern-detail-panel-attendance" role="tabpanel" aria-labelledby="intern-detail-tab-attendance" className="overflow-x-auto rounded-xl border">
+          <table className="w-full min-w-xl text-sm">
             <thead>
               <tr className="border-b text-left">
                 <th className="h-10 px-3 font-medium">Ngày</th>
@@ -174,7 +181,7 @@ export function InternDetail({
       ) : null}
 
       {tab === "reports" ? (
-        <div className="flex flex-col gap-2">
+        <div id="intern-detail-panel-reports" role="tabpanel" aria-labelledby="intern-detail-tab-reports" className="flex flex-col gap-2">
           {reports.length === 0 ? (
             <p className="rounded-xl border p-6 text-center text-sm text-muted-foreground">
               Chưa có báo cáo nào.
@@ -182,7 +189,7 @@ export function InternDetail({
           ) : (
             reports.map((r) => (
               <div key={r.id} className="rounded-xl border p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-medium">
                     {reportTypeLabel.daily} · {formatDate(r.report_date)}
                   </p>
@@ -191,7 +198,14 @@ export function InternDetail({
                 <p className="mt-2 text-sm text-muted-foreground">
                   {r.tasks_done ?? "Không có nội dung"}
                 </p>
-                {r.feedback ?? "Chưa có nhận xét"}
+                {r.feedback ? (
+                  <dl className="mt-3 border-t border-border/60 pt-2">
+                    <dt className="text-xs font-medium text-muted-foreground">Nhận xét</dt>
+                    <dd className="mt-0.5 text-sm">{r.feedback}</dd>
+                  </dl>
+                ) : (
+                  <p className="mt-3 border-t border-border/60 pt-2 text-xs text-muted-foreground">Chưa có nhận xét</p>
+                )}
               </div>
             ))
           )}

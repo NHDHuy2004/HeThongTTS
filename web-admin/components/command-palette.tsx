@@ -17,6 +17,7 @@ export function CommandPalette({ role }: { role: string }) {
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   const items = React.useMemo(() => getNavItems(role), [role]);
 
@@ -41,6 +42,11 @@ export function CommandPalette({ role }: { role: string }) {
     requestAnimationFrame(() => inputRef.current?.focus());
   }
 
+  function closePalette() {
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
   React.useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -50,11 +56,23 @@ export function CommandPalette({ role }: { role: string }) {
         setActive(0);
         requestAnimationFrame(() => inputRef.current?.focus());
       }
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    inputRef.current?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open ]);
 
   function go(item: NavItem) {
     setOpen(false);
@@ -77,14 +95,15 @@ export function CommandPalette({ role }: { role: string }) {
   return (
     <>
       <button
+        ref={triggerRef}
         type="button"
         onClick={openPalette}
-        className="hidden h-8 items-center gap-2 rounded-lg border border-input bg-background px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent md:flex"
+        className="flex h-8 items-center gap-2 rounded-lg border border-input bg-background px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 md:min-w-48"
         aria-label="Tìm trang (⌘K)"
       >
-        <Search className="size-3.5" />
-        <span>Tìm trang...</span>
-        <kbd className="pointer-events-none rounded border bg-muted px-1.5 font-mono text-[10px]">
+        <Search className="size-3.5" aria-hidden />
+        <span className="hidden sm:inline">Tìm trang...</span>
+        <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] md:inline">
           ⌘K
         </kbd>
       </button>
@@ -92,10 +111,11 @@ export function CommandPalette({ role }: { role: string }) {
       {open ? (
         <div
           className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[12vh] backdrop-blur-sm"
-          onClick={() => setOpen(false)}
+          onClick={closePalette}
         >
           <div
             role="dialog"
+            aria-modal="true"
             aria-label="Tìm trang"
             className="w-full max-w-lg overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-lg"
             onClick={(e) => e.stopPropagation()}

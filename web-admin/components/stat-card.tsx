@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 /**
  * Thẻ thống kê dùng chung — thay cho 3 kiểu stat card copy-paste
  * trong dashboard, admin/reports, admin/requests.
+ * `tone` tương thích ngược: emerald -> success, orange -> warning.
  */
 export function StatCard({
   label,
@@ -17,39 +18,44 @@ export function StatCard({
   label: string;
   value: number | string;
   icon?: LucideIcon;
-  tone?: "emerald" | "orange";
+  tone?: "emerald" | "orange" | "success" | "warning" | "info";
   className?: string;
 }) {
-  const isEmerald = tone === "emerald";
+  const isWarning = tone === "orange" || tone === "warning";
+  const isInfo = tone === "info";
   return (
     <Card
       className={cn(
-        "group relative overflow-hidden border border-border/80 bg-card transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+        "group relative overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md motion-reduce:hover:translate-y-0",
         className,
       )}
     >
       <div
+        aria-hidden
         className={cn(
-          "absolute top-0 left-0 right-0 h-1 transition-all group-hover:h-1.5",
-          isEmerald ? "bg-emerald-600" : "bg-orange-500",
+          "absolute left-0 right-0 top-0 h-1 transition-all group-hover:h-1.5",
+          isWarning ? "bg-warning" : isInfo ? "bg-info" : "bg-primary",
         )}
       />
-      <CardContent className="flex items-center justify-between p-4 pt-5">
-        <div className="space-y-1">
-          <p className="text-xs font-semibold tracking-wide text-muted-foreground">
+      <CardContent className="flex items-center justify-between gap-3 p-4 pt-5">
+        <div className="min-w-0 space-y-1">
+          <p className="truncate text-xs font-semibold tracking-wide text-muted-foreground">
             {label}
           </p>
-          <p className="text-2xl font-bold tracking-tight text-foreground tabular-nums">
+          <p className="text-2xl font-bold tabular-nums tracking-tight text-foreground">
             {value}
           </p>
         </div>
         {Icon ? (
           <div
+            aria-hidden
             className={cn(
-              "flex size-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 group-hover:scale-105",
-              isEmerald
-                ? "bg-emerald-500/12 text-emerald-700 ring-1 ring-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-400"
-                : "bg-orange-500/12 text-orange-700 ring-1 ring-orange-500/20 dark:bg-orange-950/50 dark:text-orange-400",
+              "flex size-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 group-hover:scale-105 motion-reduce:group-hover:scale-100",
+              isWarning
+                ? "bg-warning/12 text-warning ring-1 ring-warning/20 dark:text-warning"
+                : isInfo
+                  ? "bg-info/12 text-info ring-1 ring-info/20 dark:text-info"
+                  : "bg-primary/12 text-primary ring-1 ring-primary/20",
             )}
           >
             <Icon className="size-5.5" />

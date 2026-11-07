@@ -7,88 +7,93 @@ import { cn } from "cn";
 
 import { roleLabel } from "@/features/labels";
 import { getNavSections } from "@/features/nav";
+import { Badge } from "@/components/ui/badge";
 
-export function Sidebar({ role }: { role: string }) {
+export function Sidebar({ role, onNavigate }: { role: string; onNavigate?: () => void }) {
   const pathname = usePathname();
   const sections = getNavSections(role);
 
   return (
-    <nav className="flex h-full flex-col justify-between p-3 bg-card border-r border-border/80">
-      <div className="flex flex-col">
-        <div className="flex items-center gap-3 px-2 pb-3 pt-1 border-b border-border/60">
-          <div className="relative">
+    <nav aria-label="Điều hướng chính" className="flex h-full flex-col justify-between gap-3 p-3 bg-card">
+      <div className="flex min-h-0 flex-col">
+        <div className="flex items-center gap-3 px-2 pb-3 pt-1">
+          <div className="relative shrink-0">
             <Image
               src="/logo-dalat.png"
               alt="Đại học Đà Lạt"
               width={36}
               height={36}
               priority
-              className="size-9 shrink-0 rounded-xl bg-white object-contain p-1 shadow-sm ring-1 ring-emerald-600/20"
+              className="size-9 rounded-xl bg-card object-contain p-1 ring-1 ring-primary/20"
             />
-            <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+            <span aria-hidden className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-primary ring-2 ring-card" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-foreground tracking-tight">
+            <p className="truncate text-sm font-bold tracking-tight text-foreground">
               IMS Đà Lạt
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="inline-flex items-center px-1.5 py-0.2 text-[10px] font-semibold rounded-md bg-emerald-500/10 text-emerald-800 border border-emerald-500/20 dark:bg-emerald-950/50 dark:text-emerald-300">
+            <div className="mt-0.5">
+              <Badge variant="success" className="text-[11px]">
                 {roleLabel[role] ?? role}
-              </span>
+              </Badge>
             </div>
           </div>
         </div>
 
-        <div className="overflow-y-auto pt-1">
+        <div className="min-h-0 flex-1 overflow-y-auto pt-1 pr-0.5 [scrollbar-width:thin]">
           {sections.map((section) => (
             <div key={section.title} className="pb-1">
-              <p className="px-3 pt-4 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              <p aria-hidden className="px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                 {section.title}
               </p>
-              <div className="flex flex-col gap-1">
+              <ul className="flex flex-col gap-1">
                 {section.items.map((item) => {
-                  const active = pathname.startsWith(item.href);
+                  const active =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
                   return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        "group relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-                        active
-                          ? "bg-emerald-500/12 text-emerald-900 font-semibold shadow-xs dark:bg-emerald-500/20 dark:text-emerald-200"
-                          : "text-muted-foreground hover:bg-emerald-500/8 hover:text-emerald-900 dark:hover:bg-emerald-950/30 dark:hover:text-emerald-300",
-                      )}
-                    >
-                      {active && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r-md bg-emerald-600" />
-                      )}
-                      <item.icon
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        onClick={onNavigate}
+                        aria-current={active ? "page" : undefined}
                         className={cn(
-                          "size-4 shrink-0 transition-transform group-hover:scale-110",
+                          "group relative flex min-h-10 items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                           active
-                            ? "text-emerald-600 dark:text-emerald-400"
-                            : "text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400",
+                            ? "bg-primary/12 font-semibold text-foreground shadow-xs"
+                            : "text-muted-foreground hover:bg-primary/8 hover:text-foreground",
                         )}
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
+                      >
+                        {active && (
+                          <span aria-hidden className="absolute bottom-1.5 left-0 top-1.5 w-1 rounded-r-md bg-primary" />
+                        )}
+                        <item.icon
+                          aria-hidden
+                          className={cn(
+                            "size-4 shrink-0 transition-transform group-hover:scale-110 motion-reduce:group-hover:scale-100",
+                            active ? "text-primary" : "text-muted-foreground group-hover:text-primary",
+                          )}
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="mt-auto pt-3 border-t border-border/60 px-2 flex items-center justify-between text-[11px] text-muted-foreground">
+      <div className="mt-auto flex items-center justify-between border-t border-border/60 px-2 pt-3 text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
-          <span className="relative flex size-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
+          <span aria-hidden className="relative flex size-2">
+            <span className="absolute inline-flex size-full rounded-full bg-primary opacity-75 motion-safe:animate-ping" />
+            <span className="relative inline-flex size-2 rounded-full bg-primary" />
           </span>
-          <span className="font-medium text-emerald-700 dark:text-emerald-400">Trực tuyến</span>
+          <span className="font-medium text-primary">Trực tuyến</span>
         </div>
-        <span className="text-[10px] font-mono text-muted-foreground/80">v1.0-ims</span>
+        <span className="font-mono text-[11px] text-muted-foreground/80">v1.0-ims</span>
       </div>
     </nav>
   );

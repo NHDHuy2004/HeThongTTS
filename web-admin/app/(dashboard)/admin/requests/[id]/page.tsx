@@ -59,6 +59,30 @@ export default async function AdminRequestDetailPage({
 
   const request = data as RequestDetail;
 
+  // Nghiệp vụ điều chỉnh chấm công: hiển thị giờ đề xuất + bản ghi hiện tại
+  // để người xét duyệt đối chiếu trước khi duyệt (payload do form tạo đơn ghi).
+  const adjustmentPayload =
+    request.request_type === "attendance_adjustment"
+      ? ((request.payload ?? null) as {
+          proposed_check_in?: string | null;
+          proposed_check_out?: string | null;
+        } | null)
+      : null;
+
+  const currentAttendance =
+    adjustmentPayload && request.intern_id && request.start_date
+      ? (
+          await supabase
+            .from("attendance")
+            .select(
+              "id, check_in_at, check_out_at, status, is_geo_validated, attendance_locations(name)",
+            )
+            .eq("intern_id", request.intern_id)
+            .eq("work_date", request.start_date)
+            .maybeSingle()
+        ).data
+      : null;
+
   const attachmentUrls = await Promise.all(
     (request.request_attachments ?? []).map(async (a) => {
       const { data: signed } = await supabase.storage
@@ -158,10 +182,71 @@ export default async function AdminRequestDetailPage({
         ) : null}
       </section>
 
+      {adjustmentPayload ? (
+        <section className="flex flex-col gap-3 rounded-lg border p-4">
+          <h2 className="text-sm font-semibold">Đề xuất điều chỉnh điểm danh</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Giờ vào đề xuất</span>
+              <p className="font-medium">
+                {formatDateTime(adjustmentPayload.proposed_check_in)}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-muted/20 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Giờ ra đề xuất</span>
+              <p className="font-medium">
+                {formatDateTime(adjustmentPayload.proposed_check_out)}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Bản ghi điểm danh hiện tại
+              {request.start_date ? ` (${formatDate(request.start_date)})` : ""}
+            </h3>
+            {currentAttendance ? (
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-lg border px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">Giờ vào hiện tại</span>
+                  <p className="font-medium">
+                    {formatDateTime(currentAttendance.check_in_at)}
+                  </p>
+                </div>
+                <div className="rounded-lg border px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">Giờ ra hiện tại</span>
+                  <p className="font-medium">
+                    {formatDateTime(currentAttendance.check_out_at)}
+                  </p>
+                </div>
+                <div className="rounded-lg border px-3 py-2 text-sm">
+                  <span className="text-muted-foreground">Trạng thái</span>
+                  <div className="mt-1 flex flex-col gap-1">
+                    <StatusBadge value={currentAttendance.status} />
+                    <span className="text-xs text-muted-foreground">
+                      GPS:{" "}
+                      {currentAttendance.is_geo_validated
+                        ? "đã xác minh"
+                        : "chưa xác minh"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Chưa có bản ghi điểm danh cho ngày này — bản ghi sẽ được tạo khi
+                duyệt đơn.
+              </p>
+            )}
+          </div>
+        </section>
+      ) : null}
+
       <RequestDetailActions
         requestId={request.id}
         status={request.status}
         mode="review"
+        requestType={request.request_type}
+        viewerRole={role}
       />
 
       {attachmentUrls.length > 0 ? (

@@ -15,6 +15,8 @@ export const statusLabel: Record<string, string> = {
   in_progress: "Đang làm",
   in_review: "Chờ duyệt",
   changes_requested: "Cần chỉnh sửa",
+  todo: "Chưa bắt đầu",
+  done: "Hoàn thành",
   // task priority
   low: "Thấp",
   medium: "Trung bình",
@@ -27,6 +29,7 @@ export const statusLabel: Record<string, string> = {
   completed: "Hoàn thành",
   cancelled: "Đã hủy",
   converted: "Đã chuyển NV",
+  inactive: "Không hoạt động",
   // batch / internship
   upcoming: "Sắp tới",
   // request
@@ -56,6 +59,9 @@ export const statusLabel: Record<string, string> = {
   revoked: "Thu hồi",
   working_day: "Ngày làm",
   holiday: "Nghỉ lễ",
+  // evaluation
+  finalized: "Đã chốt điểm",
+  reviewed: "Đã xem xét",
 };
 
 export const statusVariant: Record<string, BadgeVariant> = {
@@ -64,8 +70,10 @@ export const statusVariant: Record<string, BadgeVariant> = {
   issued: "success",
   present: "success",
   completed: "success",
+  done: "success",
   active: "success",
   converted: "success",
+  finalized: "success",
   // in progress / warning / pending / highlight -> orange (cam)
   in_progress: "orange",
   in_review: "orange",
@@ -78,6 +86,7 @@ export const statusVariant: Record<string, BadgeVariant> = {
   late: "orange",
   high: "orange",
   urgent: "orange",
+  reviewed: "orange",
   // negative -> destructive
   changes_requested: "destructive",
   needs_revision: "destructive",
@@ -89,6 +98,8 @@ export const statusVariant: Record<string, BadgeVariant> = {
   draft: "outline",
   not_started: "outline",
   not_submitted: "outline",
+  todo: "outline",
+  inactive: "outline",
   medium: "outline",
   low: "outline",
   leave: "outline",
