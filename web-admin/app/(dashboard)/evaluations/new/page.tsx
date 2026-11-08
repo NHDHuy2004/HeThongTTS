@@ -17,7 +17,7 @@ export default async function NewEvaluationPage() {
   let query = supabase
     .from("internships")
     .select(
-      "id, start_date, end_date, interns(full_name, student_code, email, major, school), departments(name), mentors(full_name), internship_batches(name)",
+      "id, start_date, end_date, interns(full_name, student_code, email, major, school, class_name), departments(name), mentors(full_name), internship_batches(name)",
     )
     .is("deleted_at", null)
     .order("created_at", { ascending: false })
@@ -31,6 +31,8 @@ export default async function NewEvaluationPage() {
       .maybeSingle();
     if (mentor) {
       query = query.eq("mentor_id", mentor.id);
+    } else {
+      query = query.eq("id", "00000000-0000-0000-0000-000000000000");
     }
   }
 
@@ -40,7 +42,7 @@ export default async function NewEvaluationPage() {
       id: string;
       start_date: string | null;
       end_date: string | null;
-      interns: { full_name: string; student_code: string | null; email: string | null; major: string | null; school: string | null } | null;
+      interns: { full_name: string; student_code: string | null; email: string | null; major: string | null; school: string | null; class_name: string | null } | null;
       departments: { name: string } | null;
       mentors: { full_name: string } | null;
       internship_batches: { name: string } | null;
@@ -52,6 +54,7 @@ export default async function NewEvaluationPage() {
       email: row.interns?.email ?? "—",
       major: row.interns?.major ?? null,
       school: row.interns?.school ?? null,
+      className: row.interns?.class_name ?? null,
       department: row.departments?.name ?? "—",
       mentor: row.mentors?.full_name ?? "—",
       batch: row.internship_batches?.name ?? "—",

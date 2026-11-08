@@ -32,9 +32,17 @@ export function EvalForm({ internships }: { internships: Option[] }) {
       const result = await createEvaluation(prev, formData);
       if (result?.error) {
         toast.error(result.error);
+        if (result.id) {
+          setOpen(false);
+          router.push(`/evaluations/${result.id}`);
+          router.refresh();
+        }
       } else {
         toast.success("Đã tạo đánh giá.");
         setOpen(false);
+        if (result.id) {
+          router.push(`/evaluations/${result.id}`);
+        }
         router.refresh();
       }
       return result;

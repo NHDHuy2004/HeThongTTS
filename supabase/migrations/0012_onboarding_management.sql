@@ -641,25 +641,26 @@ as $$
   select
     public.get_my_role() = 'admin'
     or (
-      array_length(value, 1) = 2
-      and value[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-      and public.can_read_document_catalog(value[1]::uuid)
+      array_length(parts.value, 1) = 2
+      and parts.value[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and public.can_read_document_catalog(parts.value[1]::uuid)
     )
     or (
-      array_length(value, 1) = 5
-      and value[1] = 'records'
-      and value[3] = 'documents'
-      and value[2] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-      and value[4] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-      and public.can_read_onboarding(value[2]::uuid)
-      and public.can_read_onboarding_document(value[4]::uuid)
+      array_length(parts.value, 1) = 5
+      and parts.value[1] = 'records'
+      and parts.value[3] = 'documents'
+      and parts.value[2] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and parts.value[4] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and public.can_read_onboarding(parts.value[2]::uuid)
+      and public.can_read_onboarding_document(parts.value[4]::uuid)
       and exists (
         select 1
         from public.onboarding_documents d
-        where d.id = value[4]::uuid
-          and d.onboarding_id = value[2]::uuid
+        where d.id = parts.value[4]::uuid
+          and d.onboarding_id = parts.value[2]::uuid
       )
-    );
+    )
+  from parts;
 $$;
 
 create or replace function public.can_write_onboarding_storage_path(p_object_name text)
@@ -676,26 +677,27 @@ as $$
     public.get_my_role() = 'admin'
     or (
       public.get_my_role() = 'hr'
-      and array_length(value, 1) = 2
-      and value[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and array_length(parts.value, 1) = 2
+      and parts.value[1] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
     )
     or (
-      array_length(value, 1) = 5
-      and value[1] = 'records'
-      and value[3] = 'documents'
-      and value[2] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-      and value[4] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      array_length(parts.value, 1) = 5
+      and parts.value[1] = 'records'
+      and parts.value[3] = 'documents'
+      and parts.value[2] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+      and parts.value[4] ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
       and (
-        public.can_submit_onboarding_document(value[4]::uuid)
-        or public.can_manage_onboarding(value[2]::uuid)
+        public.can_submit_onboarding_document(parts.value[4]::uuid)
+        or public.can_manage_onboarding(parts.value[2]::uuid)
       )
       and exists (
         select 1
         from public.onboarding_documents d
-        where d.id = value[4]::uuid
-          and d.onboarding_id = value[2]::uuid
+        where d.id = parts.value[4]::uuid
+          and d.onboarding_id = parts.value[2]::uuid
       )
-    );
+    )
+  from parts;
 $$;
 
 revoke all on function public.can_manage_onboarding(uuid) from public, anon;
@@ -727,13 +729,15 @@ alter table public.onboarding_activity_logs enable row level security;
 drop policy if exists onboarding_document_types_select on public.onboarding_document_types;
 create policy onboarding_document_types_select on public.onboarding_document_types
   for select to authenticated using (is_active or public.get_my_role() in ('hr', 'admin'));
-drop policy if exists onboarding_document_types_write on public.onboarding_document_types
+drop policy if exists onboarding_document_types_write on public.onboarding_document_types;
+create policy onboarding_document_types_write on public.onboarding_document_types
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists onboarding_templates_select on public.onboarding_checklist_templates;
 create policy onboarding_templates_select on public.onboarding_checklist_templates
   for select to authenticated using (is_active or public.get_my_role() in ('hr', 'admin'));
-drop policy if exists onboarding_templates_write on public.onboarding_checklist_templates
+drop policy if exists onboarding_templates_write on public.onboarding_checklist_templates;
+create policy onboarding_templates_write on public.onboarding_checklist_templates
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists onboarding_template_items_select on public.onboarding_checklist_template_items;
@@ -745,7 +749,8 @@ create policy onboarding_template_items_select on public.onboarding_checklist_te
       where t.id = template_id and t.is_active
     )
   );
-drop policy if exists onboarding_template_items_write on public.onboarding_checklist_template_items
+drop policy if exists onboarding_template_items_write on public.onboarding_checklist_template_items;
+create policy onboarding_template_items_write on public.onboarding_checklist_template_items
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists onboarding_records_select on public.onboarding_records;
